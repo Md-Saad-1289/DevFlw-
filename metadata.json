@@ -1,0 +1,6 @@
+{
+  "name": "DevFlw",
+  "description": "Client Collaboration Platform for Software Development",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
