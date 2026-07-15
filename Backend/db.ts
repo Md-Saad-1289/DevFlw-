@@ -89,6 +89,7 @@ const ProjectSchema = new mongoose.Schema({
   clients: { type: [String], default: [] }, // email addresses of invited clients
   liveDemoUrl: { type: String, default: '' },
   status: { type: String, enum: ['active', 'archived'], default: 'active' },
+  lifecycleStage: { type: String, enum: ['Planning', 'In Progress', 'Ready for Review', 'Client Review', 'Changes Requested', 'Approved', 'Completed', 'Archived'], default: 'Planning' },
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -245,6 +246,7 @@ export const db = {
         ...data,
         clients: data.clients || [],
         status: data.status || 'active',
+        lifecycleStage: data.lifecycleStage || 'Planning',
         createdAt: new Date().toISOString()
       };
       dbStore.projects.push(newProject);

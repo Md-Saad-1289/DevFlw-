@@ -11,6 +11,7 @@ import { TaskBoard } from './TaskBoard';
 import { FeedbackOverlay } from './FeedbackOverlay';
 import { ProjectChat } from './ProjectChat';
 import { NotificationCenter } from './NotificationCenter';
+import { ProjectLifecycleStepper } from './ProjectLifecycleStepper';
 
 // Configure axial base client with authorization header
 const api = axios.create();
@@ -253,6 +254,30 @@ export const Dashboard: React.FC = () => {
     await fetchProjects();
   };
 
+  // Update Project Lifecycle Stage
+  const handleUpdateLifecycleStage = async (stage: string) => {
+    if (!activeProject) return;
+    const id = activeProject._id || activeProject.id;
+    try {
+      const res = await api.patch(`/api/projects/${id}`, { lifecycleStage: stage });
+      setActiveProject(res.data.project);
+      setProjects(prev => prev.map(p => (p._id || p.id) === id ? res.data.project : p));
+      
+      // Post system announcement to Discussion log
+      try {
+        await api.post('/api/messages', { 
+          projectId: id, 
+          text: `📢 System Status: Workspace lifecycle stage has progressed to "${stage}".` 
+        });
+        await fetchActiveProjectData();
+      } catch (e) {
+        console.error('Failed to post system milestone log:', e);
+      }
+    } catch (err) {
+      console.error('Failed to update project lifecycle:', err);
+    }
+  };
+
   // Invite Client to current active project
   const handleInviteClient = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -480,6 +505,13 @@ export const Dashboard: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Project Lifecycle Stepper */}
+                <ProjectLifecycleStepper
+                  currentStage={activeProject.lifecycleStage || 'Planning'}
+                  onStageChange={handleUpdateLifecycleStage}
+                  userRole={user!.role}
+                />
+
                 {/* Sub Tab selection bar */}
                 <div className="flex items-center gap-1.5 overflow-x-auto border-b border-slate-100 pb-2">
                   <button
@@ -546,6 +578,7 @@ export const Dashboard: React.FC = () => {
                     onUpdateTask={handleUpdateTask}
                     onDeleteTask={handleDeleteTask}
                     clients={activeProject.clients || []}
+                    currentLifecycleStage={activeProject.lifecycleStage || 'Planning'}
                   />
                 )}
 

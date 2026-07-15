@@ -121,11 +121,11 @@ router.get('/:id', authenticateToken, async (req: any, res: any) => {
   }
 });
 
-// Update project (Developer only can update all; Clients can view/limited)
+// Update project (Developer can update all; Clients can only update lifecycleStage if invited)
 router.patch('/:id', authenticateToken, async (req: any, res: any) => {
   const { id } = req.params;
-  const { name, description, liveDemoUrl, status } = req.body;
-  const { id: userId, role } = req.user;
+  const { name, description, liveDemoUrl, status, lifecycleStage } = req.body;
+  const { id: userId, email, role } = req.user;
 
   try {
     const project = await db.projects.findById(id);
@@ -133,20 +133,37 @@ router.patch('/:id', authenticateToken, async (req: any, res: any) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
-    if (role !== 'developer' || project.developerId !== userId) {
-      return res.status(403).json({ error: 'Only the project developer can modify details' });
+    const isDeveloper = role === 'developer' && project.developerId === userId;
+    const isClient = role === 'client' && project.clients.includes(email?.toLowerCase());
+
+    if (!isDeveloper && !isClient) {
+      return res.status(403).json({ error: 'Access denied to this project' });
+    }
+
+    // Clients can only update lifecycleStage
+    if (isClient && (name !== undefined || description !== undefined || liveDemoUrl !== undefined || status !== undefined)) {
+      return res.status(403).json({ error: 'Only the project developer can modify project configurations' });
     }
 
     const updates: any = {};
-    if (name !== undefined) updates.name = name;
-    if (description !== undefined) updates.description = description;
-    if (liveDemoUrl !== undefined) updates.liveDemoUrl = liveDemoUrl;
-    if (status !== undefined) updates.status = status;
+    if (isDeveloper) {
+      if (name !== undefined) updates.name = name;
+      if (description !== undefined) updates.description = description;
+      if (liveDemoUrl !== undefined) updates.liveDemoUrl = liveDemoUrl;
+      if (status !== undefined) updates.status = status;
+    }
+
+    let isLifecycleChanged = false;
+    let oldLifecycle = project.lifecycleStage || 'Planning';
+    if (lifecycleStage !== undefined && lifecycleStage !== oldLifecycle) {
+      updates.lifecycleStage = lifecycleStage;
+      isLifecycleChanged = true;
+    }
 
     const updatedProject = await db.projects.findByIdAndUpdate(id, updates);
 
     // Notify clients on demo link update
-    if (liveDemoUrl && project.clients && project.clients.length > 0) {
+    if (isDeveloper && liveDemoUrl && project.clients && project.clients.length > 0) {
       for (const clientEmail of project.clients) {
         const clientUser = await db.users.findOne({ email: clientEmail });
         if (clientUser) {
@@ -155,6 +172,38 @@ router.patch('/:id', authenticateToken, async (req: any, res: any) => {
             projectId: id,
             text: `The Live Demo link for project "${project.name}" has been updated.`
           });
+        }
+      }
+    }
+
+    // Notify participants on lifecycle stage update
+    if (isLifecycleChanged) {
+      const changerName = role === 'developer' ? 'the developer' : email;
+      const text = `Project "${project.name}" status updated to "${lifecycleStage}" by ${changerName}.`;
+      
+      // Notify developer
+      if (role !== 'developer') {
+        await db.notifications.create({
+          userId: project.developerId,
+          projectId: id,
+          text: text
+        });
+      }
+
+      // Notify clients
+      if (project.clients && project.clients.length > 0) {
+        for (const clientEmail of project.clients) {
+          if (role === 'client' && clientEmail.toLowerCase() === email.toLowerCase()) {
+            continue; // Skip the client who made the change
+          }
+          const clientUser = await db.users.findOne({ email: clientEmail });
+          if (clientUser) {
+            await db.notifications.create({
+              userId: clientUser._id || clientUser.id,
+              projectId: id,
+              text: text
+            });
+          }
         }
       }
     }

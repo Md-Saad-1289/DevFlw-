@@ -15,6 +15,7 @@ export interface Project {
   clients: string[];
   liveDemoUrl: string;
   status: 'active' | 'archived';
+  lifecycleStage?: 'Planning' | 'In Progress' | 'Ready for Review' | 'Client Review' | 'Changes Requested' | 'Approved' | 'Completed' | 'Archived';
   createdAt?: string;
 }
 

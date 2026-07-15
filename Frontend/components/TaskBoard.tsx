@@ -13,6 +13,7 @@ interface TaskBoardProps {
   onUpdateTask: (id: string, updates: Partial<Task>) => Promise<void>;
   onDeleteTask: (id: string) => Promise<void>;
   clients: string[];
+  currentLifecycleStage?: string;
 }
 
 const COLUMNS = [
@@ -28,7 +29,8 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
   onAddTask,
   onUpdateTask,
   onDeleteTask,
-  clients
+  clients,
+  currentLifecycleStage
 }) => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [title, setTitle] = useState('');
@@ -86,7 +88,14 @@ export const TaskBoard: React.FC<TaskBoardProps> = ({
       {/* Header and Add Task Action */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-5">
         <div>
-          <h2 className="text-lg font-bold text-slate-900">Project Milestone Board</h2>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h2 className="text-lg font-bold text-slate-900">Project Milestone Board</h2>
+            {currentLifecycleStage && (
+              <span className="text-[10px] font-extrabold bg-indigo-50 border border-indigo-100 text-indigo-700 px-2.5 py-0.5 rounded-full uppercase tracking-wider animate-none">
+                Pipeline: {currentLifecycleStage}
+              </span>
+            )}
+          </div>
           <p className="text-xs text-slate-500">Track and progress developer tasks, backlog milestones, and client feedback requests.</p>
         </div>
         
