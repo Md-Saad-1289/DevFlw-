@@ -19,12 +19,12 @@ export const authenticateToken = async (req: any, res: any, next: any) => {
     const decoded = jwt.verify(token, JWT_SECRET) as any;
     const user = await db.users.findById(decoded.id);
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(401).json({ error: 'User session invalid or user not found' });
     }
-    req.user = { id: user._id || user.id, name: user.name, email: user.email, role: user.role };
+    req.user = { id: user._id || user.id, name: user.name, email: user.email, role: user.role, plan: user.plan || 'free' };
     next();
   } catch (err) {
-    return res.status(403).json({ error: 'Invalid or expired token' });
+    return res.status(401).json({ error: 'Invalid or expired token' });
   }
 };
 
@@ -65,6 +65,7 @@ router.post('/register-developer', async (req: any, res: any) => {
         name: newUser.name,
         email: newUser.email,
         role: newUser.role,
+        plan: newUser.plan || 'free',
         createdAt: newUser.createdAt
       }
     });
@@ -103,6 +104,7 @@ router.post('/register-client', async (req: any, res: any) => {
             name: updatedUser.name,
             email: updatedUser.email,
             role: 'client',
+            plan: updatedUser.plan || 'free',
             createdAt: updatedUser.createdAt
           }
         });
@@ -128,6 +130,7 @@ router.post('/register-client', async (req: any, res: any) => {
         name: newUser.name,
         email: newUser.email,
         role: newUser.role,
+        plan: newUser.plan || 'free',
         createdAt: newUser.createdAt
       }
     });
@@ -172,6 +175,7 @@ router.post('/login', async (req: any, res: any) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        plan: user.plan || 'free',
         createdAt: user.createdAt
       }
     });
@@ -184,6 +188,41 @@ router.post('/login', async (req: any, res: any) => {
 // 4. Get authenticated user status
 router.get('/me', authenticateToken, (req: any, res: any) => {
   return res.json({ user: req.user });
+});
+
+// 5. Update user plan (Simulated payment-free Upgrade)
+router.put('/plan', authenticateToken, async (req: any, res: any) => {
+  const { plan } = req.body;
+  const { id } = req.user;
+
+  if (plan !== 'free' && plan !== 'pro') {
+    return res.status(400).json({ error: 'Invalid plan type' });
+  }
+
+  try {
+    await db.users.updateOne({ _id: id }, { plan });
+    await db.users.updateOne({ id: id }, { plan });
+
+    const updatedUser = await db.users.findById(id);
+    if (!updatedUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    return res.json({
+      message: `Successfully updated to ${plan} plan`,
+      user: {
+        id: updatedUser._id || updatedUser.id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        role: updatedUser.role,
+        plan: updatedUser.plan || 'free',
+        createdAt: updatedUser.createdAt
+      }
+    });
+  } catch (err: any) {
+    console.error('Error updating plan:', err);
+    return res.status(500).json({ error: 'Server error while updating plan' });
+  }
 });
 
 export default router;

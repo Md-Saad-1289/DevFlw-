@@ -5,6 +5,7 @@ export interface User {
   name: string;
   email: string;
   role: 'developer' | 'client' | 'admin';
+  plan?: 'free' | 'pro';
   createdAt?: string;
 }
 
@@ -17,6 +18,7 @@ interface AuthContextType {
   registerDeveloper: (name: string, email: string, password: string) => Promise<boolean>;
   registerClient: (name: string, email: string, password: string) => Promise<boolean>;
   registerAdmin: (name: string, email: string, password: string) => Promise<boolean>;
+  updatePlan: (plan: 'free' | 'pro') => Promise<boolean>;
   logout: () => void;
   clearError: () => void;
 }
@@ -183,6 +185,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updatePlan = async (plan: 'free' | 'pro'): Promise<boolean> => {
+    setError(null);
+    setLoading(true);
+    try {
+      const response = await fetch('/api/auth/plan', {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ plan }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update plan');
+      }
+
+      const updatedUser = { ...user, plan: data.user.plan } as User;
+      localStorage.setItem('devflw_user', JSON.stringify(updatedUser));
+      setUser(updatedUser);
+      return true;
+    } catch (err: any) {
+      setError(err.message || 'An error occurred during plan update');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem('devflw_token');
     localStorage.removeItem('devflw_user');
@@ -204,6 +235,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         registerDeveloper,
         registerClient,
         registerAdmin,
+        updatePlan,
         logout,
         clearError,
       }}

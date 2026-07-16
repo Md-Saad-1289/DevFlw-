@@ -17,6 +17,131 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
   const [supportEmail, setSupportEmail] = useState('');
   const [supportMessage, setSupportMessage] = useState('');
 
+  // Landing Page Interactive Lifecycles & Conversational Upgrades
+  const [activeLifecycleStage, setActiveLifecycleStage] = useState<string>('Client Review');
+  
+  // Savings Calculator States
+  const [calcProjects, setCalcProjects] = useState<number>(3);
+  const [calcEmails, setCalcEmails] = useState<number>(15);
+  const [calcHourlyRate, setCalcHourlyRate] = useState<number>(65);
+
+  // Conversational Onboarding Assistant (Chat Widget)
+  const [isBotOpen, setIsBotOpen] = useState<boolean>(false);
+  const [botTyping, setBotTyping] = useState<boolean>(false);
+  const [botCurrentOptions, setBotCurrentOptions] = useState<string[]>(['dev', 'client', 'how_emails', 'pricing']);
+  const [botMessages, setBotMessages] = useState<Array<{ sender: 'bot' | 'user'; text: string; time: string }>>([
+    { 
+      sender: 'bot', 
+      text: "Hi there! 👋 I am the DevFlw Guide. I can help explain how we optimize client-developer collaboration and replace endless emails with visual staging pins. Are you a Developer or a Client?", 
+      time: 'Just now' 
+    }
+  ]);
+  const [showBotOptions, setShowBotOptions] = useState<boolean>(true);
+  const [customBotInput, setCustomBotInput] = useState<string>('');
+
+  const botPredefinedReplies: Record<string, { reply: string; nextOptions: string[] }> = {
+    'dev': {
+      reply: "Excellent! Developers love DevFlw because you can upload or link your staging server in 5 seconds. Your clients can click anywhere directly on the interactive layout to create spatial annotation pins. It's like having Figma comments directly on live HTML/CSS! This keeps all client suggestions fully organized on your Kanban board.",
+      nextOptions: ['how_emails', 'pricing', 'reset']
+    },
+    'client': {
+      reply: "Great to have you here! Reviewing live software builds is incredibly stress-free with DevFlw. Instead of drafting a long email describing where a layout element looks out-of-place, you just open the live preview sandbox, click the exact button or logo, and write your remark. Your developers will instantly see the precise location and coordinate details!",
+      nextOptions: ['how_emails', 'pricing', 'reset']
+    },
+    'how_emails': {
+      reply: "DevFlw links viewport comments directly to live threads and tasks. Instead of writing 'on page 2 of the invoice layout, that blue button needs to be shifted...', you just place a coordinate pin. This simple process reduces back-and-forth feedback emails by over 75% and speeds up project approval times by 40%!",
+      nextOptions: ['dev', 'client', 'pricing', 'reset']
+    },
+    'pricing': {
+      reply: "DevFlw is 100% free for up to 2 active collaboration projects! For larger software agencies or multi-member development teams, our Premium Plan is $29/month per workspace. This unlocks secure client invite seats, unlimited project archiving, priority support, and email push notifications.",
+      nextOptions: ['dev', 'client', 'how_emails', 'reset']
+    },
+    'reset': {
+      reply: "Let's start fresh! I can explain how we make developer-client co-creation clear and frictionless. What fits your role closest?",
+      nextOptions: ['dev', 'client', 'how_emails', 'pricing']
+    }
+  };
+
+  const handleBotSelectOption = (key: string, label: string) => {
+    setShowBotOptions(false);
+    const userMsg = { 
+      sender: 'user' as const, 
+      text: label, 
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+    };
+    setBotMessages(prev => [...prev, userMsg]);
+    setBotTyping(true);
+
+    setTimeout(() => {
+      const data = botPredefinedReplies[key] || botPredefinedReplies['reset'];
+      const botMsg = { 
+        sender: 'bot' as const, 
+        text: data.reply, 
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+      };
+      setBotMessages(prev => [...prev, botMsg]);
+      setBotTyping(false);
+      setBotCurrentOptions(data.nextOptions);
+      setShowBotOptions(true);
+    }, 850);
+  };
+
+  const handleCustomBotSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!customBotInput.trim()) return;
+    
+    const userText = customBotInput.trim();
+    setCustomBotInput('');
+    setShowBotOptions(false);
+
+    const userMsg = { 
+      sender: 'user' as const, 
+      text: userText, 
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+    };
+    setBotMessages(prev => [...prev, userMsg]);
+    setBotTyping(true);
+
+    setTimeout(() => {
+      // Analyze text for keyword matches to reply intelligently
+      const lowercaseText = userText.toLowerCase();
+      let replyText = "That's an excellent question! DevFlw is built precisely to solve that. It couples high-fidelity staging sandboxes with visual feedback pins, context-rich discussions, and agile milestones.";
+      let nextOpts = ['dev', 'client', 'pricing'];
+
+      if (lowercaseText.includes('price') || lowercaseText.includes('cost') || lowercaseText.includes('free')) {
+        replyText = botPredefinedReplies['pricing'].reply;
+        nextOpts = botPredefinedReplies['pricing'].nextOptions;
+      } else if (lowercaseText.includes('developer') || lowercaseText.includes('dev') || lowercaseText.includes('engineer')) {
+        replyText = botPredefinedReplies['dev'].reply;
+        nextOpts = botPredefinedReplies['dev'].nextOptions;
+      } else if (lowercaseText.includes('client') || lowercaseText.includes('customer') || lowercaseText.includes('buyer')) {
+        replyText = botPredefinedReplies['client'].reply;
+        nextOpts = botPredefinedReplies['client'].nextOptions;
+      } else if (lowercaseText.includes('email') || lowercaseText.includes('slow') || lowercaseText.includes('reduce')) {
+        replyText = botPredefinedReplies['how_emails'].reply;
+        nextOpts = botPredefinedReplies['how_emails'].nextOptions;
+      }
+
+      const botMsg = { 
+        sender: 'bot' as const, 
+        text: replyText, 
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) 
+      };
+      setBotMessages(prev => [...prev, botMsg]);
+      setBotTyping(false);
+      setBotCurrentOptions(nextOpts);
+      setShowBotOptions(true);
+    }, 1000);
+  };
+
+  const optionLabels: Record<string, string> = {
+    'dev': '💻 I am a Software Developer',
+    'client': '🤝 I am a Client / Manager',
+    'how_emails': '📧 How does it reduce emails?',
+    'pricing': '💰 View Platform Pricing',
+    'reset': '🔄 Back to Start'
+  };
+
   // Hero Interactive Feedback Simulator States
 
   // Hero Interactive Feedback Simulator States
@@ -753,6 +878,582 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
         </div>
       </header>
 
+      {/* INTERACTIVE WORKFLOW LIFE-CYCLE STAGE TOUR */}
+      <section id="interactive-lifecycle" className="py-20 bg-slate-900 text-white border-y border-slate-800 relative overflow-hidden">
+        <div className="absolute top-1/4 left-1/10 w-96 h-96 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-1/4 right-1/10 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto px-6 space-y-12 relative z-10">
+          <div className="text-center max-w-3xl mx-auto space-y-3">
+            <span className="inline-flex items-center gap-1.5 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+              <Zap className="w-3.5 h-3.5 animate-pulse" />
+              Interactive Workflow Tour
+            </span>
+            <h2 className="text-3xl md:text-4xl font-black tracking-tight leading-tight">
+              Experience the 8 Stages of Frictionless Co-Creation
+            </h2>
+            <p className="text-xs md:text-sm text-slate-400 max-w-2xl mx-auto leading-relaxed">
+              Click on any stage below to see how DevFlw automates discussions, coordinates tasks, and syncs sandbox environments in real time.
+            </p>
+          </div>
+
+          {/* Stepper Pipeline (Horizontal scrollable on mobile, flex on desktop) */}
+          <div className="bg-slate-950/80 p-5 rounded-2xl border border-slate-800 shadow-2xl overflow-x-auto scrollbar-none">
+            <div className="flex items-center justify-between min-w-[950px] gap-2 py-2">
+              {[
+                { name: 'Planning', icon: Layers, color: 'text-sky-400 bg-sky-500/10 border-sky-500/20' },
+                { name: 'In Progress', icon: Code, color: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20' },
+                { name: 'Ready for Review', icon: Eye, color: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
+                { name: 'Client Review', icon: Users, color: 'text-violet-400 bg-violet-500/10 border-violet-500/20' },
+                { name: 'Changes Requested', icon: ChevronRight, color: 'text-rose-400 bg-rose-500/10 border-rose-500/20' },
+                { name: 'Approved', icon: Check, color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
+                { name: 'Completed', icon: Sparkles, color: 'text-fuchsia-400 bg-fuchsia-500/10 border-fuchsia-500/20' },
+                { name: 'Archived', icon: Shield, color: 'text-slate-400 bg-slate-500/10 border-slate-500/20' }
+              ].map((stage, idx) => {
+                const isSelected = activeLifecycleStage === stage.name;
+                const StageIcon = stage.icon;
+                return (
+                  <React.Fragment key={stage.name}>
+                    <button
+                      onClick={() => setActiveLifecycleStage(stage.name)}
+                      className={`flex flex-col items-center gap-2 group cursor-pointer relative z-10 transition-all ${
+                        isSelected ? 'scale-105' : 'opacity-60 hover:opacity-100'
+                      }`}
+                    >
+                      {/* Step Circle */}
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center border transition-all ${
+                        isSelected 
+                          ? `${stage.color} ring-4 ring-indigo-500/20 scale-110 shadow-lg shadow-indigo-500/10` 
+                          : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
+                      }`}>
+                        <StageIcon className="w-5 h-5" />
+                      </div>
+                      <span className={`text-[10px] font-bold uppercase tracking-wider ${
+                        isSelected ? 'text-white font-black' : 'text-slate-400'
+                      }`}>
+                        {stage.name}
+                      </span>
+                    </button>
+
+                    {idx < 7 && (
+                      <div className={`flex-1 h-0.5 min-w-[20px] transition-all ${
+                        idx < ['Planning', 'In Progress', 'Ready for Review', 'Client Review', 'Changes Requested', 'Approved', 'Completed', 'Archived'].indexOf(activeLifecycleStage)
+                          ? 'bg-indigo-500'
+                          : 'bg-slate-800'
+                      }`} />
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Interactive Workspace Live Showcase Device Grid */}
+          {(() => {
+            const tourMap: Record<string, {
+              label: string;
+              desc: string;
+              badge: string;
+              badgeColor: string;
+              bubbleColor: string;
+              previewTitle: string;
+              previewDesc: string;
+              tasks: string[];
+              chat: Array<{ sender: 'dev' | 'client' | 'system'; text: string; time: string }>;
+              accentColor: string;
+            }> = {
+              'Planning': {
+                label: 'Planning',
+                desc: 'Setting project scope, requirements, & deliverables.',
+                badge: 'Phase 1: Spec Formulation',
+                badgeColor: 'bg-sky-500/10 text-sky-400 border-sky-500/20',
+                bubbleColor: 'bg-sky-500',
+                accentColor: 'sky',
+                previewTitle: '📄 Project Specs & Wireframes',
+                previewDesc: 'Initialize workspace, draft requirements sheet, and share Figma layouts directly with clients inside DevFlw.',
+                tasks: ['Draft functional spec document', 'Approve tech stack & core database model', 'Define design system presets'],
+                chat: [
+                  { sender: 'system', text: 'Project "Acme Redesign" created in DevFlw Workspace.', time: '10:00 AM' },
+                  { sender: 'dev', text: 'Hi! I have uploaded our initial Figma wireframe and mapped the database diagram. Let me know if the user flows look good!', time: '10:15 AM' },
+                  { sender: 'client', text: 'This looks incredibly thorough. Love the simple onboarding step. Let\'s proceed with coding.', time: '10:22 AM' }
+                ]
+              },
+              'In Progress': {
+                label: 'In Progress',
+                desc: 'Active development, design styling, & code push.',
+                badge: 'Phase 2: Coding & Iteration',
+                badgeColor: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
+                bubbleColor: 'bg-indigo-500',
+                accentColor: 'indigo',
+                previewTitle: '💻 Live Staging Code Sandbox',
+                previewDesc: 'Our built-in build system bundles your code on push, deploying it live to our sandboxed hosting. Developers write code; clients inspect output.',
+                tasks: ['Create responsive mobile navigation menu', 'Integrate AuthContext authentication', 'Configure database endpoints'],
+                chat: [
+                  { sender: 'dev', text: 'Just pushed the mobile navigation and auth system. The live preview has refreshed!', time: '1:40 PM' },
+                  { sender: 'system', text: 'Build successfully deployed to staging://acme-staging', time: '1:41 PM' },
+                  { sender: 'client', text: 'Wow, seeing the actual responsive menu render in real-time is amazing.', time: '1:55 PM' }
+                ]
+              },
+              'Ready for Review': {
+                label: 'Ready for Review',
+                desc: 'Developer completes tasks & hands build to client.',
+                badge: 'Phase 3: Inspection Prompt',
+                badgeColor: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+                bubbleColor: 'bg-amber-500',
+                accentColor: 'amber',
+                previewTitle: '🔍 Staging Build Ready for Client',
+                previewDesc: 'The developer toggles the stage trigger. A push alert notifies the client that the current workspace milestone is ready for interactive review.',
+                tasks: ['Test checkout forms validation rules', 'Run cross-browser compatibility suite', 'Verify responsive breakpoints'],
+                chat: [
+                  { sender: 'dev', text: 'All sprint tasks are completed. Handing over to you for visual inspect and pin placement!', time: '3:10 PM' },
+                  { sender: 'system', text: 'Milestone status set to: Ready for Review. Client invited to pin suggestions.', time: '3:11 PM' }
+                ]
+              },
+              'Client Review': {
+                label: 'Client Review',
+                desc: 'Client places interactive pins on staging viewport.',
+                badge: 'Phase 4: Pinpoint Annotation',
+                badgeColor: 'bg-violet-500/10 text-violet-400 border-violet-500/20',
+                bubbleColor: 'bg-violet-500',
+                accentColor: 'violet',
+                previewTitle: '🎯 Direct Spatial Review Canvas',
+                previewDesc: 'Client clicks anywhere on the live viewport to leave comments. Each comment has precise pixel-level coords, a category, and a priority.',
+                tasks: ['Client visual review session', 'Pin feedback on navigation and checkout button', 'Align on final details'],
+                chat: [
+                  { sender: 'client', text: 'The checkout form looks great! Just noticed a styling issue on the main call-to-action button.', time: '4:15 PM' },
+                  { sender: 'system', text: 'Client logged visual Pin #1 on Button Component (Coords: X:68%, Y:42%)', time: '4:16 PM' },
+                  { sender: 'client', text: 'I also placed a minor suggestion pin on the footer layout. Please adjust font size.', time: '4:18 PM' }
+                ]
+              },
+              'Changes Requested': {
+                label: 'Changes Requested',
+                desc: 'Developer receives precise pinpoint bugs to resolve.',
+                badge: 'Phase 5: Iteration & Correction',
+                badgeColor: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
+                bubbleColor: 'bg-rose-500',
+                accentColor: 'rose',
+                previewTitle: '🛠️ Feedback Resolution Pipeline',
+                previewDesc: 'Visual pins turn automatically into structured tasks on the developer Kanban board. Developer resolves issues and commits code changes.',
+                tasks: ['Fix checkout button hover scaling logic (Pin #1)', 'Increase footer font size on tablet (Pin #2)'],
+                chat: [
+                  { sender: 'dev', text: 'Got both pins! Commencing button transition fix and footer adjustment immediately.', time: '5:02 PM' },
+                  { sender: 'dev', text: 'Done! Adjusted the hover scale and set the footer text-xs to text-sm. Let me know what you think.', time: '5:20 PM' },
+                  { sender: 'system', text: 'Pin #1 set to RESOLVED. Staging updated.', time: '5:21 PM' }
+                ]
+              },
+              'Approved': {
+                label: 'Approved',
+                desc: 'Client reviews fixes & officially approves milestone.',
+                badge: 'Phase 6: Final Acceptance',
+                badgeColor: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+                bubbleColor: 'bg-emerald-500',
+                accentColor: 'emerald',
+                previewTitle: '✅ Verified Build Approval',
+                previewDesc: 'The client verifies that all change requests have been correctly addressed and officially signs off on the sprint milestones.',
+                tasks: ['All client feedback pins resolved', 'Client issues digital design approval stamp'],
+                chat: [
+                  { sender: 'client', text: 'Looks absolutely flawless now! The transitions are incredibly smooth. I\'ve marked all pins as approved.', time: '6:10 PM' },
+                  { sender: 'system', text: 'Workspace has been STAMPED and APPROVED by client Sarah.', time: '6:12 PM' },
+                  { sender: 'dev', text: 'Fantastic! Readying final production deploy scripts.', time: '6:15 PM' }
+                ]
+              },
+              'Completed': {
+                label: 'Completed',
+                desc: 'Milestone fully merged, deployed, & complete.',
+                badge: 'Phase 7: Production Release',
+                badgeColor: 'bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/20',
+                bubbleColor: 'bg-fuchsia-500',
+                accentColor: 'fuchsia',
+                previewTitle: '🎉 Production Deployment Live',
+                previewDesc: 'DevFlw deploys the approved build directly to the custom production domain. The client and developer celebrate a successful kickoff!',
+                tasks: ['Merge staging to master branch', 'Launch custom domain routing', 'Perform production sanity check'],
+                chat: [
+                  { sender: 'system', text: 'Build production release successfully deployed. Project Acme Redesign is LIVE!', time: '7:30 PM' },
+                  { sender: 'dev', text: 'We are live! Thank you so much for the clear and efficient feedback, Sarah. This was our fastest project yet!', time: '7:35 PM' },
+                  { sender: 'client', text: 'I am so glad we used DevFlw. No lost emails, no screenshots, just pure progress. Thank you!', time: '7:42 PM' }
+                ]
+              },
+              'Archived': {
+                label: 'Archived',
+                desc: 'Project securely locked & cataloged for reference.',
+                badge: 'Phase 8: Project Safe Vault',
+                badgeColor: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
+                bubbleColor: 'bg-slate-500',
+                accentColor: 'slate',
+                previewTitle: '🔒 Secure Workspace Archive',
+                previewDesc: 'Workspace is archived. Staging servers are safely locked, discussion logs cataloged, and history stored for future reference.',
+                tasks: ['Generate final deployment analytics report', 'Backup client-approved viewport pins log', 'Archive active staging servers'],
+                chat: [
+                  { sender: 'system', text: 'Project "Acme Redesign" successfully archived.', time: '8:00 PM' },
+                  { sender: 'system', text: 'All files, discussions, and milestone logs locked in secure platform vault.', time: '8:01 PM' }
+                ]
+              }
+            };
+
+            const data = tourMap[activeLifecycleStage] || tourMap['Planning'];
+            return (
+              <motion.div 
+                key={activeLifecycleStage}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className="grid grid-cols-1 lg:grid-cols-12 gap-8 text-left"
+              >
+                {/* Visual Viewport Simulation Column (7 columns) */}
+                <div className="lg:col-span-7 flex flex-col bg-slate-950 rounded-2xl border border-slate-800 p-6 space-y-4 relative overflow-hidden shadow-inner">
+                  {/* Mock Device Header */}
+                  <div className="flex items-center justify-between border-b border-slate-900 pb-3">
+                    <span className="text-[10px] text-slate-500 font-mono flex items-center gap-1.5">
+                      <span className="w-2.5 h-2.5 rounded-full bg-slate-800 inline-block" />
+                      {activeLifecycleStage === 'Completed' ? 'production://acme-live.com' : 'staging://acme-staging.devflw.io'}
+                    </span>
+                    <span className={`text-[9px] px-2.5 py-0.5 border rounded-full font-bold uppercase tracking-wider ${data.badgeColor}`}>
+                      {data.badge}
+                    </span>
+                  </div>
+
+                  {/* Dynamic Staging Mock Graphics */}
+                  <div className="flex-1 bg-slate-900 rounded-xl p-5 border border-slate-800/80 min-h-[220px] relative flex flex-col justify-between">
+                    
+                    {/* Background Visual representations based on stage */}
+                    {activeLifecycleStage === 'Planning' && (
+                      <div className="space-y-4 my-auto text-center opacity-70">
+                        <div className="w-12 h-12 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center mx-auto text-lg font-bold">📄</div>
+                        <div className="space-y-2">
+                          <div className="h-2 bg-slate-800 rounded w-1/3 mx-auto" />
+                          <div className="h-1.5 bg-slate-850 rounded w-2/3 mx-auto" />
+                          <div className="h-1.5 bg-slate-850 rounded w-1/2 mx-auto" />
+                        </div>
+                      </div>
+                    )}
+
+                    {activeLifecycleStage === 'In Progress' && (
+                      <div className="space-y-3 my-auto">
+                        <div className="h-5 bg-indigo-500/10 border border-indigo-500/20 rounded-md w-1/2 flex items-center px-2 text-[10px] font-mono text-indigo-400">Loading modules...</div>
+                        <div className="space-y-1.5">
+                          <div className="h-2 bg-slate-800 rounded w-11/12 animate-pulse" />
+                          <div className="h-2 bg-slate-800 rounded w-5/6" />
+                          <div className="h-2 bg-slate-850 rounded w-4/5" />
+                        </div>
+                      </div>
+                    )}
+
+                    {activeLifecycleStage === 'Ready for Review' && (
+                      <div className="space-y-3 my-auto">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400 font-bold text-xs">!</div>
+                          <div className="h-3 bg-amber-500/10 rounded w-1/2" />
+                        </div>
+                        <div className="h-16 bg-slate-950/40 border border-slate-800/60 rounded-xl p-3 flex items-center text-[10px] text-slate-400 leading-normal">
+                          Ready for Client. Staging builds and responsive stylesheets deployed. Click review pins helper above or open chat threads below.
+                        </div>
+                      </div>
+                    )}
+
+                    {activeLifecycleStage === 'Client Review' && (
+                      <div className="space-y-4 my-auto relative">
+                        {/* Mock Button with visual Pin logged on it */}
+                        <div className="p-4 bg-slate-950/50 border border-slate-800 rounded-xl flex items-center justify-between">
+                          <span className="text-[10px] text-slate-400 font-medium">Hero Call-To-Action Button</span>
+                          <div className="relative">
+                            <button className="py-1.5 px-4 bg-indigo-600 rounded-md text-[9px] font-bold">Buy Software</button>
+                            {/* Visual Pin */}
+                            <div className="absolute -top-2 -left-2 w-5 h-5 rounded-full bg-violet-600 text-white border border-white font-bold text-[9px] flex items-center justify-center shadow-lg animate-bounce">
+                              1
+                            </div>
+                          </div>
+                        </div>
+                        <p className="text-[9px] text-slate-500 italic">Click coordinate sets a pin with direct pixel reference relative to container.</p>
+                      </div>
+                    )}
+
+                    {activeLifecycleStage === 'Changes Requested' && (
+                      <div className="space-y-3.5 my-auto">
+                        <div className="flex items-center gap-1.5 bg-rose-500/10 border border-rose-500/20 py-1.5 px-3 rounded-lg">
+                          <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+                          <span className="text-[10px] font-bold text-rose-400">Task Auto-Generated: Adjust Button Scaling (High Priority)</span>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="h-2 bg-slate-800 rounded w-full" />
+                          <div className="h-2 bg-slate-850 rounded w-11/12" />
+                        </div>
+                      </div>
+                    )}
+
+                    {activeLifecycleStage === 'Approved' && (
+                      <div className="space-y-4 my-auto text-center">
+                        <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto text-xl font-bold">✓</div>
+                        <h4 className="text-xs font-bold text-emerald-400">Milestone Approved by Client</h4>
+                        <div className="h-1.5 bg-emerald-500/25 rounded w-1/3 mx-auto" />
+                      </div>
+                    )}
+
+                    {activeLifecycleStage === 'Completed' && (
+                      <div className="space-y-3 my-auto text-center py-4">
+                        <div className="text-2xl">🎉🚀</div>
+                        <h4 className="text-xs font-extrabold text-white">Acme Redesign is Live!</h4>
+                        <p className="text-[10px] text-slate-400">Production environment synchronized and operating with custom subdomains.</p>
+                      </div>
+                    )}
+
+                    {activeLifecycleStage === 'Archived' && (
+                      <div className="space-y-3 my-auto text-center opacity-60">
+                        <div className="text-xl">🔒</div>
+                        <h4 className="text-[11px] font-bold text-slate-400">Workspace Safe Locked</h4>
+                        <p className="text-[9px] text-slate-500 leading-normal">Discussions logs, client approvals, and code viewport records safely archived.</p>
+                      </div>
+                    )}
+
+                    {/* Bottom static bar */}
+                    <div className="flex justify-between items-center border-t border-slate-850 pt-3">
+                      <div>
+                        <h4 className="text-[11px] font-bold text-white leading-none">{data.previewTitle}</h4>
+                        <p className="text-[9px] text-slate-500 leading-relaxed mt-1 max-w-sm">{data.previewDesc}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Tasks List Box */}
+                  <div className="bg-slate-950 p-4 rounded-xl border border-slate-850 space-y-2">
+                    <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest block">Stage Milestone Tasks</span>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {data.tasks.map((task, idx) => (
+                        <div key={idx} className="flex items-center gap-2 bg-slate-900 border border-slate-850 p-2 rounded-lg">
+                          <div className="w-3.5 h-3.5 bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 rounded-md flex items-center justify-center text-[9px] font-bold">
+                            {idx + 1}
+                          </div>
+                          <span className="text-[10px] text-slate-300 truncate font-medium">{task}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Discussions & Alerts Logging Column (5 columns) */}
+                <div className="lg:col-span-5 flex flex-col bg-slate-950 rounded-2xl border border-slate-800 p-5 space-y-4 overflow-hidden h-full">
+                  <div className="flex items-center justify-between border-b border-slate-900 pb-2">
+                    <span className="text-[10px] text-slate-500 font-mono flex items-center gap-1.5 uppercase tracking-wide font-bold">
+                      <MessageSquare className="w-3.5 h-3.5 text-indigo-400" />
+                      Workspace Chat Log
+                    </span>
+                    <span className="text-[9px] text-slate-400 font-mono">Real-time Feed</span>
+                  </div>
+
+                  {/* Simulated Chat Bubble Feed */}
+                  <div className="flex-1 overflow-y-auto space-y-3 min-h-[260px] pr-1">
+                    {data.chat.map((msg, i) => {
+                      if (msg.sender === 'system') {
+                        return (
+                          <div key={i} className="flex justify-center">
+                            <span className="text-[9px] bg-slate-900 border border-slate-850 text-slate-400 py-1 px-2.5 rounded-full font-mono text-center">
+                              {msg.text}
+                            </span>
+                          </div>
+                        );
+                      }
+                      
+                      const isDev = msg.sender === 'dev';
+                      const senderLabel = isDev ? 'Alex (Developer)' : 'Sarah (Client)';
+                      const senderBadge = isDev ? 'bg-indigo-600/10 text-indigo-400' : 'bg-violet-600/10 text-violet-400';
+                      
+                      return (
+                        <div key={i} className={`flex flex-col space-y-1 ${isDev ? 'items-start' : 'items-end'}`}>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] text-slate-300 font-bold">{senderLabel}</span>
+                            <span className={`text-[8px] font-bold uppercase tracking-wide px-1.5 rounded ${senderBadge}`}>
+                              {isDev ? 'Dev' : 'Client'}
+                            </span>
+                          </div>
+                          <div className={`p-3 rounded-xl max-w-[90%] text-[11px] leading-relaxed break-words ${
+                            isDev 
+                              ? 'bg-slate-900 border border-slate-850 rounded-tl-none' 
+                              : 'bg-indigo-600 text-white rounded-tr-none'
+                          }`}>
+                            {msg.text}
+                          </div>
+                          <span className="text-[8px] text-slate-500 font-mono">{msg.time}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Action prompt CTA */}
+                  <div className="pt-3 border-t border-slate-900 flex justify-between items-center text-xs">
+                    <span className="text-slate-500 text-[10px]">Ready to invite your partners?</span>
+                    <button
+                      onClick={() => onNavigateToAuth('signup')}
+                      className="py-1.5 px-3.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold rounded-lg transition-all flex items-center gap-1 shadow-md shadow-indigo-600/10"
+                    >
+                      Kickoff Project
+                      <ArrowRight className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })()}
+        </div>
+      </section>
+
+      {/* INTERACTIVE TIME & COST SAVINGS CALCULATOR (ROI ACCELERATOR) */}
+      <section className="py-20 bg-white border-b border-slate-200/60 relative">
+        <div className="max-w-5xl mx-auto px-6 space-y-12">
+          
+          <div className="text-center max-w-2xl mx-auto space-y-3">
+            <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest block">
+              Cost & Alignment Calculator
+            </span>
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none">
+              Calculate Your Feedback Savings
+            </h2>
+            <p className="text-xs text-slate-500">
+              Vague emails and screen capturing chew up massive software budget. Slide the parameters to see your ROI.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center bg-slate-50 border border-slate-200/60 p-6 md:p-10 rounded-3xl shadow-sm">
+            
+            {/* Column 1: Sliders Inputs (7 cols) */}
+            <div className="md:col-span-7 space-y-6 text-left">
+              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider border-b border-slate-200 pb-2 mb-4 flex items-center gap-1.5">
+                <Tag className="w-4 h-4 text-indigo-600" />
+                Your Project Parameters
+              </h3>
+
+              {/* Sliders 1 */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-bold text-slate-700">Active Concurrent Projects</span>
+                  <span className="font-mono font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 py-0.5 px-2.5 rounded-full">
+                    {calcProjects} projects
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={1}
+                  max={12}
+                  value={calcProjects}
+                  onChange={(e) => setCalcProjects(Number(e.target.value))}
+                  className="w-full accent-indigo-600 cursor-pointer h-1.5 bg-slate-200 rounded-lg"
+                />
+                <div className="flex justify-between text-[10px] text-slate-400 font-mono">
+                  <span>1 Project</span>
+                  <span>12 Projects</span>
+                </div>
+              </div>
+
+              {/* Sliders 2 */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-bold text-slate-700">Weekly Feedback Emails / Issues (per project)</span>
+                  <span className="font-mono font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 py-0.5 px-2.5 rounded-full">
+                    {calcEmails} back-and-forths
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={5}
+                  max={45}
+                  value={calcEmails}
+                  onChange={(e) => setCalcEmails(Number(e.target.value))}
+                  className="w-full accent-indigo-600 cursor-pointer h-1.5 bg-slate-200 rounded-lg"
+                />
+                <div className="flex justify-between text-[10px] text-slate-400 font-mono">
+                  <span>5 Exchanges</span>
+                  <span>45 Exchanges</span>
+                </div>
+              </div>
+
+              {/* Sliders 3 */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-bold text-slate-700">Developer or Client Hourly Rate ($)</span>
+                  <span className="font-mono font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 py-0.5 px-2.5 rounded-full">
+                    ${calcHourlyRate} / hour
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={25}
+                  max={150}
+                  value={calcHourlyRate}
+                  onChange={(e) => setCalcHourlyRate(Number(e.target.value))}
+                  className="w-full accent-indigo-600 cursor-pointer h-1.5 bg-slate-200 rounded-lg"
+                />
+                <div className="flex justify-between text-[10px] text-slate-400 font-mono">
+                  <span>$25/hr</span>
+                  <span>$150/hr</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Column 2: Computations ROI Dashboard Outputs (5 cols) */}
+            <div className="md:col-span-5 bg-indigo-900 text-white rounded-2xl p-6 border border-indigo-950 text-left space-y-4 shadow-lg shadow-indigo-950/10">
+              <span className="text-[9px] font-mono text-indigo-200 uppercase tracking-widest block">
+                Your Monthly Savings
+              </span>
+
+              {/* Computation logic block */}
+              {(() => {
+                // assume each email back and forth takes 15 minutes of dev/client time to read, formulate, reply, coordinate, adjust
+                const hoursWastedWeekly = (calcEmails * 15 / 60) * calcProjects;
+                const costWastedWeekly = hoursWastedWeekly * calcHourlyRate;
+                const monthlyLoss = costWastedWeekly * 4.3;
+
+                // DevFlw reduces visual revision times by 75%
+                const monthlySaved = monthlyLoss * 0.75;
+                const hoursSavedMonthly = hoursWastedWeekly * 4.3 * 0.75;
+
+                return (
+                  <div className="space-y-5">
+                    {/* Big output display */}
+                    <div className="space-y-1">
+                      <h4 className="text-xs text-indigo-200 leading-none">Total Cash Saved</h4>
+                      <div className="text-3xl md:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-200 to-white">
+                        ${Math.round(monthlySaved).toLocaleString()} <span className="text-xs font-semibold text-indigo-200">/ mo</span>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-indigo-800 pt-4 space-y-3">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-indigo-200">Feedback Hours Saved</span>
+                        <span className="font-bold font-mono text-white">
+                          {Math.round(hoursSavedMonthly)} hrs / mo
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-indigo-200">Email Back-and-forth Reduction</span>
+                        <span className="font-bold text-emerald-400">
+                          75% Less Noise
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-indigo-200">Project Velocity Increase</span>
+                        <span className="font-bold text-amber-300">
+                          40% Faster Approvals
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="pt-2">
+                      <button
+                        onClick={() => onNavigateToAuth('signup')}
+                        className="w-full py-3 bg-white hover:bg-indigo-50 text-indigo-900 font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        Start Saving Time Today
+                        <ArrowRight className="w-3.5 h-3.5 text-indigo-900" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
       {/* Features Grid Section */}
       <section id="features" className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-6 space-y-12">
@@ -1161,6 +1862,147 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
           </div>
         </div>
       )}
+
+      {/* FLOATING CONVERSATIONAL ASSISTANT BOT WIDGET */}
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+        <AnimatePresence>
+          {isBotOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: 30, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 30, scale: 0.9 }}
+              className="bg-white rounded-2xl shadow-2xl border border-slate-200/80 w-80 md:w-96 overflow-hidden flex flex-col mb-4 max-h-[500px] text-slate-800"
+            >
+              {/* Header */}
+              <div className="bg-indigo-900 text-white p-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-indigo-600/30 flex items-center justify-center text-indigo-300 font-bold border border-indigo-700">
+                    <MessageSquare className="w-4 h-4 text-indigo-300" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold leading-none">DevFlw Assistant</h3>
+                    <span className="text-[9px] text-emerald-400 font-medium flex items-center gap-1 mt-1 font-mono uppercase tracking-wider">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      Online & Ready
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsBotOpen(false)}
+                  className="p-1 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-all cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Chat Messages Log Container */}
+              <div className="flex-1 p-4 overflow-y-auto space-y-3 max-h-[280px] bg-slate-50">
+                {botMessages.map((msg, i) => {
+                  const isBot = msg.sender === 'bot';
+                  return (
+                    <div key={i} className={`flex ${isBot ? 'justify-start' : 'justify-end'}`}>
+                      <div className={`p-3 rounded-2xl text-[11px] leading-relaxed max-w-[85%] ${
+                        isBot 
+                          ? 'bg-white border border-slate-200 rounded-tl-none text-slate-700 shadow-sm' 
+                          : 'bg-indigo-600 text-white rounded-tr-none shadow-md shadow-indigo-600/10'
+                      }`}>
+                        {msg.text}
+                        <span className={`block text-[8px] mt-1 text-right font-mono ${isBot ? 'text-slate-400' : 'text-indigo-200'}`}>
+                          {msg.time}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {botTyping && (
+                  <div className="flex justify-start">
+                    <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-none p-3 shadow-sm flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Interactive Quick-Options Selector */}
+              {showBotOptions && botCurrentOptions.length > 0 && (
+                <div className="p-3 border-t border-slate-100 bg-white space-y-1.5 max-h-[140px] overflow-y-auto">
+                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block mb-1 px-1">
+                    Select an inquiry
+                  </span>
+                  <div className="flex flex-wrap gap-1">
+                    {botCurrentOptions.map((opt) => (
+                      <button
+                        key={opt}
+                        onClick={() => handleBotSelectOption(opt, optionLabels[opt] || 'Inquire')}
+                        className="py-1 px-2.5 bg-slate-100 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 text-slate-700 hover:text-indigo-600 text-[10px] font-bold rounded-full transition-all cursor-pointer text-left leading-none"
+                      >
+                        {optionLabels[opt] || opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Manual Question Input Bar */}
+              <form onSubmit={handleCustomBotSubmit} className="border-t border-slate-100 p-3 bg-white flex gap-2">
+                <input
+                  type="text"
+                  value={customBotInput}
+                  onChange={(e) => setCustomBotInput(e.target.value)}
+                  placeholder="Ask a custom question..."
+                  className="flex-1 text-xs py-1.5 px-3 border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-600 bg-slate-50"
+                />
+                <button
+                  type="submit"
+                  disabled={!customBotInput.trim()}
+                  className="py-1.5 px-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:hover:bg-indigo-600 text-white text-[10px] font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center"
+                >
+                  Ask
+                </button>
+              </form>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Big Glow Floating Circle Trigger */}
+        <button
+          onClick={() => setIsBotOpen(!isBotOpen)}
+          className="w-14 h-14 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center shadow-xl shadow-indigo-600/30 hover:scale-105 active:scale-95 transition-all cursor-pointer relative group"
+        >
+          {/* Pulsing ring */}
+          <span className="absolute -inset-1 rounded-full border-2 border-indigo-500/30 animate-ping opacity-75 group-hover:opacity-0" />
+          
+          <AnimatePresence mode="wait">
+            {isBotOpen ? (
+              <motion.div
+                key="close"
+                initial={{ rotate: -90, opacity: 0 }}
+                animate={{ rotate: 0, opacity: 1 }}
+                exit={{ rotate: 90, opacity: 0 }}
+                transition={{ duration: 0.15 }}
+              >
+                <X className="w-6 h-6" />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="chat"
+                initial={{ rotate: 90, opacity: 0 }}
+                animate={{ rotate: 0, opacity: 1 }}
+                exit={{ rotate: -90, opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                className="relative"
+              >
+                <MessageSquare className="w-6 h-6" />
+                {/* Notification Badge Dot */}
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-rose-500 border-2 border-indigo-600" />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </button>
+      </div>
 
     </div>
   );

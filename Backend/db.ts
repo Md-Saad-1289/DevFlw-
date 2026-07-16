@@ -79,6 +79,7 @@ const UserSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   role: { type: String, enum: ['developer', 'client', 'admin'], default: 'developer' },
+  plan: { type: String, enum: ['free', 'pro'], default: 'free' },
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -177,6 +178,7 @@ export const db = {
       const newUser = {
         _id: Math.random().toString(36).substring(2, 11),
         id: Math.random().toString(36).substring(2, 11),
+        plan: data.plan || 'free',
         ...data,
         createdAt: new Date().toISOString()
       };

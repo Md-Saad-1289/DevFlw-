@@ -95,7 +95,7 @@ export const ProjectLifecycleStepper: React.FC<ProjectLifecycleStepperProps> = (
   onStageChange,
   userRole
 }) => {
-  const currentIndex = LIFECYCLE_STAGES.indexOf(currentStage);
+  const currentIndex = LIFECYCLE_STAGES.indexOf(currentStage as any);
   const [hoveredStage, setHoveredStage] = useState<LifecycleStage | null>(null);
   const [updatingStage, setUpdatingStage] = useState<LifecycleStage | null>(null);
   const [confirmStage, setConfirmStage] = useState<LifecycleStage | null>(null);

@@ -27,7 +27,7 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && [401, 403, 404].includes(error.response.status)) {
+    if (error.response && error.response.status === 401) {
       console.warn('Authentication failure detected, clearing session.');
       localStorage.removeItem('devflw_token');
       localStorage.removeItem('devflw_user');
@@ -38,7 +38,7 @@ api.interceptors.response.use(
 );
 
 export const Dashboard: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, updatePlan } = useAuth();
   
   // State variables
   const [projects, setProjects] = useState<Project[]>([]);
@@ -452,6 +452,52 @@ export const Dashboard: React.FC = () => {
             )}
           </div>
 
+          {/* Developer Subscription Plan & Slots Usage */}
+          {user?.role === 'developer' && (
+            <div className="p-4 bg-indigo-50/40 border border-indigo-100/70 rounded-xl space-y-2.5">
+              <div className="flex justify-between items-center">
+                <span className="text-[9px] font-extrabold text-indigo-600 uppercase tracking-wider">Plan & Usage</span>
+                <span className={`text-[8px] font-extrabold px-2 py-0.5 rounded-full border ${
+                  user?.plan === 'pro' 
+                    ? 'bg-purple-50 text-purple-700 border-purple-200' 
+                    : 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                } uppercase tracking-wide`}>
+                  {user?.plan === 'pro' ? 'Pro Plan' : 'Free Plan'}
+                </span>
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between text-[10px] font-bold text-slate-600">
+                  <span>Workspace Slots</span>
+                  <span>{projects.filter(p => p.status !== 'archived').length} / {user?.plan === 'pro' ? 15 : 2} used</span>
+                </div>
+                <div className="w-full bg-slate-100/80 rounded-full h-1.5 overflow-hidden">
+                  <div 
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      user?.plan === 'pro' ? 'bg-purple-600' : 'bg-indigo-600'
+                    }`}
+                    style={{ 
+                      width: `${Math.min(100, (projects.filter(p => p.status !== 'archived').length / (user?.plan === 'pro' ? 15 : 2)) * 100)}%` 
+                    }}
+                  />
+                </div>
+              </div>
+              <button
+                id="sidebar-upgrade-btn"
+                onClick={() => {
+                  if (activeProject) {
+                    setActiveTab('settings');
+                  } else {
+                    // If no project is active, let's establish a temp or alert
+                    alert('Please select or create a project workspace to access Subscription settings tab.');
+                  }
+                }}
+                className="w-full text-center py-1.5 bg-white hover:bg-slate-50 text-indigo-600 text-[10px] font-extrabold rounded-lg border border-indigo-200 cursor-pointer shadow-xs transition-colors"
+              >
+                {user?.plan === 'pro' ? 'Manage Subscription' : 'Upgrade Slots'}
+              </button>
+            </div>
+          )}
+
           {/* Quick instructions panel */}
           <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl space-y-2 mt-auto">
             <h5 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
@@ -603,60 +649,163 @@ export const Dashboard: React.FC = () => {
                 )}
 
                 {activeTab === 'settings' && (
-                  <div className="bg-white p-6 rounded-2xl border border-slate-200/50 shadow-sm max-w-2xl space-y-6">
-                    <div>
-                      <h3 className="text-sm font-bold text-slate-900">Project Settings & Client Invite</h3>
-                      <p className="text-xs text-slate-500 mt-1">Manage external invites, live prototype builds, and metadata configurations.</p>
-                    </div>
-
-                    <form onSubmit={handleInviteClient} className="space-y-3 pt-2">
-                      <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
-                        <Users className="w-4 h-4 text-indigo-600" />
-                        Invite Clients via Email
-                      </h4>
-                      <p className="text-[11px] text-slate-400">Add client email to instantly sync tasks and let them access this workspace.</p>
-                      
-                      <div className="flex gap-2">
-                        <input
-                          id="invite-email-input"
-                          type="email"
-                          required
-                          placeholder="client@company.com"
-                          value={inviteEmail}
-                          onChange={(e) => setInviteEmail(e.target.value)}
-                          className="flex-1 bg-slate-50 hover:bg-slate-50 focus:bg-white border border-slate-200 focus:border-indigo-500 rounded-lg py-2 px-3 text-xs text-slate-900 placeholder:text-slate-400 outline-none transition-all"
-                        />
-                        <button
-                          type="submit"
-                          id="send-invite-btn"
-                          disabled={inviteLoading}
-                          className="py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors cursor-pointer disabled:opacity-50"
-                        >
-                          {inviteLoading ? 'Sending...' : 'Invite Partner'}
-                        </button>
+                  <div className="space-y-6 max-w-2xl">
+                    <div className="bg-white p-6 rounded-2xl border border-slate-200/50 shadow-sm space-y-6">
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-900">Project Settings & Client Invite</h3>
+                        <p className="text-xs text-slate-500 mt-1">Manage external invites, live prototype builds, and metadata configurations.</p>
                       </div>
-                      {inviteMsg && (
-                        <p className={`text-xs font-semibold ${inviteMsg.includes('successfully') ? 'text-emerald-600' : 'text-rose-600'}`}>
-                          {inviteMsg}
-                        </p>
-                      )}
-                    </form>
 
-                    <div className="border-t border-slate-100 pt-6 space-y-4">
-                      <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Workspace Users</h4>
-                      <div className="divide-y divide-slate-100">
-                        {activeProject.clients.length === 0 ? (
-                          <p className="text-xs text-slate-400 py-3">No clients have been invited yet. Send invitations to start co-design feedback loops!</p>
-                        ) : (
-                          activeProject.clients.map(email => (
-                            <div key={email} className="py-3 flex items-center justify-between text-xs text-slate-600">
-                              <span className="font-semibold">{email}</span>
-                              <span className="text-[9px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded border">CLIENT PARTNER</span>
-                            </div>
-                          ))
+                      <form onSubmit={handleInviteClient} className="space-y-3 pt-2">
+                        <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
+                          <Users className="w-4 h-4 text-indigo-600" />
+                          Invite Clients via Email
+                        </h4>
+                        <p className="text-[11px] text-slate-400">Add client email to instantly sync tasks and let them access this workspace.</p>
+                        
+                        <div className="flex gap-2">
+                          <input
+                            id="invite-email-input"
+                            type="email"
+                            required
+                            placeholder="client@company.com"
+                            value={inviteEmail}
+                            onChange={(e) => setInviteEmail(e.target.value)}
+                            className="flex-1 bg-slate-50 hover:bg-slate-50 focus:bg-white border border-slate-200 focus:border-indigo-500 rounded-lg py-2 px-3 text-xs text-slate-900 placeholder:text-slate-400 outline-none transition-all"
+                          />
+                          <button
+                            type="submit"
+                            id="send-invite-btn"
+                            disabled={inviteLoading}
+                            className="py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-colors cursor-pointer disabled:opacity-50"
+                          >
+                            {inviteLoading ? 'Sending...' : 'Invite Partner'}
+                          </button>
+                        </div>
+                        {inviteMsg && (
+                          <p className={`text-xs font-semibold ${inviteMsg.includes('successfully') ? 'text-emerald-600' : 'text-rose-600'}`}>
+                            {inviteMsg}
+                          </p>
                         )}
+                      </form>
+
+                      <div className="border-t border-slate-100 pt-6 space-y-4">
+                        <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Workspace Users</h4>
+                        <div className="divide-y divide-slate-100">
+                          {activeProject.clients.length === 0 ? (
+                            <p className="text-xs text-slate-400 py-3">No clients have been invited yet. Send invitations to start co-design feedback loops!</p>
+                          ) : (
+                            activeProject.clients.map(email => (
+                              <div key={email} className="py-3 flex items-center justify-between text-xs text-slate-600">
+                                <span className="font-semibold">{email}</span>
+                                <span className="text-[9px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded border">CLIENT PARTNER</span>
+                              </div>
+                            ))
+                          )}
+                        </div>
                       </div>
                     </div>
+
+                    {/* Simulated Plans & Subscription Card */}
+                    {user?.role === 'developer' && (
+                      <div className="bg-white p-6 rounded-2xl border border-slate-200/50 shadow-sm space-y-6">
+                        <div>
+                          <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                            <Sparkles className="w-4 h-4 text-purple-600 animate-pulse" />
+                            Workspace Subscription Slots & Billing
+                          </h3>
+                          <p className="text-xs text-slate-500 mt-1">Monitor your collaboration workspace slots and manage simulated billing tiers.</p>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Free Card */}
+                          <div className={`p-5 rounded-xl border transition-all ${
+                            user?.plan !== 'pro' 
+                              ? 'border-indigo-600 bg-indigo-50/20 ring-2 ring-indigo-600/10' 
+                              : 'border-slate-100 bg-slate-50/40 opacity-70'
+                          }`}>
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <span className="text-[9px] font-extrabold text-indigo-600 uppercase tracking-wider">Basic Starter</span>
+                                <h4 className="text-sm font-bold text-slate-900 mt-0.5">Free Plan</h4>
+                              </div>
+                              {user?.plan !== 'pro' && (
+                                <span className="text-[9px] font-extrabold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-200">
+                                  ACTIVE PLAN
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">
+                              Perfect for independent freelancers testing single prototype builds.
+                            </p>
+                            <div className="mt-4 border-t border-dashed border-slate-200/60 pt-3 flex justify-between items-center">
+                              <div>
+                                <span className="text-xs font-bold text-slate-950 block">2 Active Workspaces</span>
+                                <span className="text-[10px] text-slate-400 block mt-0.5">Core taskboard & pin boards</span>
+                              </div>
+                              <span className="text-xs font-extrabold text-slate-900">$0 <span className="text-[9px] font-normal text-slate-400">/ mo</span></span>
+                            </div>
+                          </div>
+
+                          {/* Pro Card */}
+                          <div className={`p-5 rounded-xl border transition-all ${
+                            user?.plan === 'pro' 
+                              ? 'border-purple-600 bg-purple-50/20 ring-2 ring-purple-600/10' 
+                              : 'border-slate-100 bg-slate-50/40 opacity-70 hover:opacity-100'
+                          }`}>
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <span className="text-[9px] font-extrabold text-purple-600 uppercase tracking-wider">Agency Scale</span>
+                                <h4 className="text-sm font-bold text-slate-900 mt-0.5">Pro Plan</h4>
+                              </div>
+                              {user?.plan === 'pro' && (
+                                <span className="text-[9px] font-extrabold bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full border border-purple-200">
+                                  ACTIVE PLAN
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">
+                              Run multiple parallel collaborative staging platforms for a full client list.
+                            </p>
+                            <div className="mt-4 border-t border-dashed border-slate-200/60 pt-3 flex justify-between items-center">
+                              <div>
+                                <span className="text-xs font-bold text-slate-950 block">15 Active Workspaces</span>
+                                <span className="text-[10px] text-slate-400 block mt-0.5">High slot limits & priority syncing</span>
+                              </div>
+                              <span className="text-xs font-extrabold text-slate-900">$15 <span className="text-[9px] font-normal text-slate-400">/ mo</span></span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Toggler button for simulated payment flow */}
+                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+                          <div className="text-left">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Local Billing Simulator</span>
+                            <span className="text-xs text-slate-600 font-medium">
+                              {user?.plan === 'pro' 
+                                ? 'You have access to 15 project workspace slots.' 
+                                : 'Instantly unlock up to 15 parallel project workspace slots.'}
+                            </span>
+                          </div>
+                          
+                          <button
+                            id="simulate-upgrade-btn"
+                            type="button"
+                            onClick={async () => {
+                              const targetPlan = user?.plan === 'pro' ? 'free' : 'pro';
+                              await updatePlan(targetPlan);
+                            }}
+                            className={`py-2 px-4 rounded-lg text-xs font-bold shadow-sm transition-all cursor-pointer whitespace-nowrap ${
+                              user?.plan === 'pro'
+                                ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
+                                : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                            }`}
+                          >
+                            {user?.plan === 'pro' ? 'Revert to Free' : 'Upgrade to Pro'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

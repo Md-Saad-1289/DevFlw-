@@ -4,6 +4,7 @@ export interface User {
   name: string;
   email: string;
   role: 'developer' | 'client' | 'admin';
+  plan?: 'free' | 'pro';
 }
 
 export interface Project {

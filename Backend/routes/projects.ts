@@ -28,7 +28,7 @@ router.get('/', authenticateToken, async (req: any, res: any) => {
 // Create new project (Developer only)
 router.post('/', authenticateToken, async (req: any, res: any) => {
   const { name, description, liveDemoUrl, clientEmail } = req.body;
-  const { id, role } = req.user;
+  const { id, role, plan } = req.user;
 
   if (role !== 'developer') {
     return res.status(403).json({ error: 'Only developers can create projects' });
@@ -39,6 +39,17 @@ router.post('/', authenticateToken, async (req: any, res: any) => {
   }
 
   try {
+    // Count active projects of this developer
+    const existingProjects = await db.projects.find({ developerId: id });
+    const activeProjects = existingProjects.filter((p: any) => p.status !== 'archived');
+    
+    const projectLimit = plan === 'pro' ? 15 : 2;
+    if (activeProjects.length >= projectLimit) {
+      return res.status(403).json({ 
+        error: `You have reached the project limit for your plan (Free: 2 projects, Pro: 15 projects). You are currently using ${activeProjects.length}/${projectLimit} project slots. Please upgrade or archive an existing project to proceed.` 
+      });
+    }
+
     const clientsList: string[] = [];
     if (clientEmail) {
       const lowercaseEmail = clientEmail.trim().toLowerCase();
