@@ -4,14 +4,16 @@ import { AdminStats } from './AdminStats';
 import { AdminUsers } from './AdminUsers';
 import { AdminProjects } from './AdminProjects';
 import { AdminNotifications } from './AdminNotifications';
-import { Shield, Users, FolderGit2, Megaphone, BarChart3, LogOut, ArrowLeft } from 'lucide-react';
+import { AdminPlans } from './AdminPlans';
+import { Shield, Users, FolderGit2, Megaphone, BarChart3, LogOut, ArrowLeft, Layers } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState<'stats' | 'users' | 'projects' | 'notifications'>('stats');
+  const [activeTab, setActiveTab] = useState<'stats' | 'users' | 'projects' | 'notifications' | 'plans'>('stats');
   const [stats, setStats] = useState<any>(null);
   const [users, setUsers] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
+  const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,10 +61,22 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
+  const fetchPlans = async () => {
+    try {
+      const res = await fetch('/api/admin/plans', { headers: getHeaders() });
+      if (!res.ok) throw new Error('Failed to load pricing plans');
+      const data = await res.json();
+      setPlans(data.plans || []);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message);
+    }
+  };
+
   const loadData = async () => {
     setLoading(true);
     setError(null);
-    await Promise.all([fetchStats(), fetchUsers(), fetchProjects()]);
+    await Promise.all([fetchStats(), fetchUsers(), fetchProjects(), fetchPlans()]);
     setLoading(false);
   };
 
@@ -84,6 +98,25 @@ export const AdminDashboard: React.FC = () => {
       return true;
     } catch (err: any) {
       alert(err.message || 'Error occurred while deleting user');
+      return false;
+    }
+  };
+
+  const handleUpdatePlan = async (userId: string, plan: string): Promise<boolean> => {
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/plan`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify({ plan }),
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to update user plan');
+      }
+      await loadData();
+      return true;
+    } catch (err: any) {
+      alert(err.message || 'Error occurred while updating user plan');
       return false;
     }
   };
@@ -120,6 +153,62 @@ export const AdminDashboard: React.FC = () => {
       return true;
     } catch (err: any) {
       alert(err.message || 'Error occurred while broadcasting announcement');
+      return false;
+    }
+  };
+
+  const handleAddPlan = async (planData: any): Promise<boolean> => {
+    try {
+      const res = await fetch('/api/admin/plans', {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(planData),
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to create plan');
+      }
+      await fetchPlans();
+      return true;
+    } catch (err: any) {
+      alert(err.message || 'Error occurred while creating plan');
+      return false;
+    }
+  };
+
+  const handleUpdatePlanDetails = async (id: string, updates: any): Promise<boolean> => {
+    try {
+      const res = await fetch(`/api/admin/plans/${id}`, {
+        method: 'PUT',
+        headers: getHeaders(),
+        body: JSON.stringify(updates),
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to update plan');
+      }
+      await fetchPlans();
+      return true;
+    } catch (err: any) {
+      alert(err.message || 'Error occurred while updating plan');
+      return false;
+    }
+  };
+
+  const handleDeletePlan = async (id: string): Promise<boolean> => {
+    try {
+      const res = await fetch(`/api/admin/plans/${id}`, {
+        method: 'DELETE',
+        headers: getHeaders(),
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to delete plan');
+      }
+      await fetchPlans();
+      return true;
+    } catch (err: any) {
+      alert(err.message || 'Error occurred while deleting plan');
       return false;
     }
   };
@@ -224,6 +313,19 @@ export const AdminDashboard: React.FC = () => {
               </button>
 
               <button
+                id="admin-nav-plans"
+                onClick={() => setActiveTab('plans')}
+                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'plans'
+                    ? 'bg-rose-50 text-rose-600 border border-rose-100/50 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50 border border-transparent'
+                }`}
+              >
+                <Layers className="w-4 h-4" />
+                Pricing Plans ({plans.length})
+              </button>
+
+              <button
                 id="admin-nav-broadcast"
                 onClick={() => setActiveTab('notifications')}
                 className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
@@ -274,6 +376,8 @@ export const AdminDashboard: React.FC = () => {
                   users={users}
                   currentUserEmail={user?.email || ''}
                   onDeleteUser={handleDeleteUser}
+                  onUpdatePlan={handleUpdatePlan}
+                  availablePlans={plans}
                 />
               )}
               {activeTab === 'projects' && (
@@ -281,6 +385,14 @@ export const AdminDashboard: React.FC = () => {
               )}
               {activeTab === 'notifications' && (
                 <AdminNotifications onBroadcast={handleBroadcast} />
+              )}
+              {activeTab === 'plans' && (
+                <AdminPlans
+                  plans={plans}
+                  onAddPlan={handleAddPlan}
+                  onUpdatePlan={handleUpdatePlanDetails}
+                  onDeletePlan={handleDeletePlan}
+                />
               )}
             </div>
           )}

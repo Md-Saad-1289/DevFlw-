@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Search, UserMinus, ShieldAlert, BadgeInfo } from 'lucide-react';
+import { Search, UserMinus, ShieldAlert, BadgeInfo, Crown } from 'lucide-react';
 
 interface UserItem {
   id: string;
   name: string;
   email: string;
   role: 'developer' | 'client' | 'admin';
+  plan?: string;
   createdAt?: string;
 }
 
@@ -13,9 +14,11 @@ interface AdminUsersProps {
   users: UserItem[];
   currentUserEmail: string;
   onDeleteUser: (id: string) => Promise<boolean>;
+  onUpdatePlan: (userId: string, plan: string) => Promise<boolean>;
+  availablePlans?: any[];
 }
 
-export const AdminUsers: React.FC<AdminUsersProps> = ({ users, currentUserEmail, onDeleteUser }) => {
+export const AdminUsers: React.FC<AdminUsersProps> = ({ users, currentUserEmail, onDeleteUser, onUpdatePlan, availablePlans = [] }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -85,6 +88,7 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({ users, currentUserEmail,
               <th className="py-3 px-4">Name</th>
               <th className="py-3 px-4">Email</th>
               <th className="py-3 px-4">Role</th>
+              <th className="py-3 px-4">Plan Level</th>
               <th className="py-3 px-4">Joined Date</th>
               <th className="py-3 px-4 text-right">Actions</th>
             </tr>
@@ -92,7 +96,7 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({ users, currentUserEmail,
           <tbody>
             {filteredUsers.length === 0 ? (
               <tr>
-                <td colSpan={5} className="text-center py-12 text-sm text-gray-400 font-medium">
+                <td colSpan={6} className="text-center py-12 text-sm text-gray-400 font-medium">
                   No accounts found matching your filters.
                 </td>
               </tr>
@@ -113,6 +117,36 @@ export const AdminUsers: React.FC<AdminUsersProps> = ({ users, currentUserEmail,
                     >
                       {u.role}
                     </span>
+                  </td>
+                  <td className="py-4 px-4">
+                    <div className="flex items-center gap-1.5">
+                      {u.plan === 'pro' && <Crown className="w-3.5 h-3.5 text-amber-500 animate-pulse" />}
+                      <select
+                        value={u.plan || 'free'}
+                        onChange={async (e) => {
+                          const newPlan = e.target.value;
+                          await onUpdatePlan(u.id, newPlan);
+                        }}
+                        className={`px-2.5 py-1 border rounded text-[10px] font-extrabold tracking-wider uppercase cursor-pointer transition-all focus:outline-none focus:ring-1 ${
+                          u.plan === 'pro'
+                            ? 'bg-amber-50 border-amber-200 text-amber-700 focus:ring-amber-500'
+                            : 'bg-gray-50 border-gray-200 text-gray-600 focus:ring-indigo-500'
+                        }`}
+                      >
+                        {availablePlans && availablePlans.length > 0 ? (
+                          availablePlans.map((p: any) => (
+                            <option key={p.key} value={p.key}>
+                              {p.name} {p.key === 'pro' ? '⭐' : ''}
+                            </option>
+                          ))
+                        ) : (
+                          <>
+                            <option value="free">Free</option>
+                            <option value="pro">Pro ⭐</option>
+                          </>
+                        )}
+                      </select>
+                    </div>
                   </td>
                   <td className="py-4 px-4 text-gray-400">
                     {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'N/A'}

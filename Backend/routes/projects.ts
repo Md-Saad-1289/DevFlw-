@@ -43,10 +43,18 @@ router.post('/', authenticateToken, async (req: any, res: any) => {
     const existingProjects = await db.projects.find({ developerId: id });
     const activeProjects = existingProjects.filter((p: any) => p.status !== 'archived');
     
-    const projectLimit = plan === 'pro' ? 15 : 2;
+    // Fetch dynamic plan limits from database
+    let projectLimit = 2;
+    const userPlan = plan ? await db.plans.findOne({ key: plan.toLowerCase() }) : null;
+    if (userPlan) {
+      projectLimit = userPlan.maxProjects;
+    } else {
+      projectLimit = plan === 'pro' ? 15 : 2; // fallback
+    }
+
     if (activeProjects.length >= projectLimit) {
       return res.status(403).json({ 
-        error: `You have reached the project limit for your plan (Free: 2 projects, Pro: 15 projects). You are currently using ${activeProjects.length}/${projectLimit} project slots. Please upgrade or archive an existing project to proceed.` 
+        error: `You have reached the project limit for your plan (${userPlan?.name || (plan === 'pro' ? 'Pro' : 'Free')}: ${projectLimit} projects). You are currently using ${activeProjects.length}/${projectLimit} project slots. Please upgrade or archive an existing project to proceed.` 
       });
     }
 
@@ -61,7 +69,7 @@ router.post('/', authenticateToken, async (req: any, res: any) => {
         await db.users.create({
           name: clientEmail.split('@')[0], // placeholder name
           email: lowercaseEmail,
-          password: '', // will be set when they complete registration
+          password: 'placeholder_password_not_set', // will be set when they complete registration
           role: 'client'
         });
       }
@@ -111,7 +119,8 @@ router.get('/:id', authenticateToken, async (req: any, res: any) => {
       return res.status(403).json({ error: 'Access denied to this project' });
     }
 
-    if (role === 'client' && !project.clients.includes(email.toLowerCase())) {
+    const clients = project.clients || [];
+    if (role === 'client' && !clients.includes(email.toLowerCase())) {
       return res.status(403).json({ error: 'Access denied to this project' });
     }
 
@@ -145,7 +154,8 @@ router.patch('/:id', authenticateToken, async (req: any, res: any) => {
     }
 
     const isDeveloper = role === 'developer' && project.developerId === userId;
-    const isClient = role === 'client' && project.clients.includes(email?.toLowerCase());
+    const clientsList = project.clients || [];
+    const isClient = role === 'client' && clientsList.includes(email?.toLowerCase());
 
     if (!isDeveloper && !isClient) {
       return res.status(403).json({ error: 'Access denied to this project' });
@@ -251,14 +261,15 @@ router.post('/:id/invite', authenticateToken, async (req: any, res: any) => {
     }
 
     const lowercaseEmail = clientEmail.trim().toLowerCase();
+    const clients = project.clients || [];
 
     // Avoid double invites
-    if (project.clients.includes(lowercaseEmail)) {
+    if (clients.includes(lowercaseEmail)) {
       return res.status(400).json({ error: 'Client is already part of this project' });
     }
 
     // Add client email to list
-    const updatedClients = [...project.clients, lowercaseEmail];
+    const updatedClients = [...clients, lowercaseEmail];
     const updatedProject = await db.projects.findByIdAndUpdate(id, { clients: updatedClients });
 
     // Check if account exists, create placeholder if not
@@ -267,7 +278,7 @@ router.post('/:id/invite', authenticateToken, async (req: any, res: any) => {
       clientUser = await db.users.create({
         name: clientEmail.split('@')[0],
         email: lowercaseEmail,
-        password: '',
+        password: 'placeholder_password_not_set',
         role: 'client'
       });
     }

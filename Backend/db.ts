@@ -21,6 +21,7 @@ interface LocalDatabase {
   feedbacks: any[];
   messages: any[];
   notifications: any[];
+  plans?: any[];
 }
 
 const getLocalDb = (): LocalDatabase => {
@@ -31,14 +32,19 @@ const getLocalDb = (): LocalDatabase => {
       tasks: [],
       feedbacks: [],
       messages: [],
-      notifications: []
+      notifications: [],
+      plans: []
     };
     fs.writeFileSync(LOCAL_DB_PATH, JSON.stringify(initialDb, null, 2), 'utf-8');
     return initialDb;
   }
   try {
     const data = fs.readFileSync(LOCAL_DB_PATH, 'utf-8');
-    return JSON.parse(data);
+    const parsed = JSON.parse(data);
+    if (!parsed.plans) {
+      parsed.plans = [];
+    }
+    return parsed;
   } catch (err) {
     console.error('Error reading local DB, resetting:', err);
     const initialDb: LocalDatabase = {
@@ -47,7 +53,8 @@ const getLocalDb = (): LocalDatabase => {
       tasks: [],
       feedbacks: [],
       messages: [],
-      notifications: []
+      notifications: [],
+      plans: []
     };
     fs.writeFileSync(LOCAL_DB_PATH, JSON.stringify(initialDb, null, 2), 'utf-8');
     return initialDb;
@@ -127,9 +134,18 @@ const MessageSchema = new mongoose.Schema({
 
 const NotificationSchema = new mongoose.Schema({
   userId: { type: String, required: true }, // recipient user ID
-  projectId: { type: String, required: true },
+  projectId: { type: String, required: false },
   text: { type: String, required: true },
   read: { type: Boolean, default: false },
+  createdAt: { type: Date, default: Date.now }
+});
+
+const PlanSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  key: { type: String, required: true, unique: true },
+  price: { type: String, required: true },
+  maxProjects: { type: Number, required: true, default: 2 },
+  features: { type: [String], default: [] },
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -140,6 +156,24 @@ const MongoTask = mongoose.models.Task || mongoose.model('Task', TaskSchema);
 const MongoFeedback = mongoose.models.Feedback || mongoose.model('Feedback', FeedbackSchema);
 const MongoMessage = mongoose.models.Message || mongoose.model('Message', MessageSchema);
 const MongoNotification = mongoose.models.Notification || mongoose.model('Notification', NotificationSchema);
+const MongoPlan = mongoose.models.Plan || mongoose.model('Plan', PlanSchema);
+
+export const defaultPlans = [
+  {
+    name: 'Free',
+    key: 'free',
+    price: '$0/month',
+    maxProjects: 2,
+    features: ['Up to 2 projects', 'Standard task tracking', 'Basic feedback markers']
+  },
+  {
+    name: 'Pro',
+    key: 'pro',
+    price: '$29/month',
+    maxProjects: 15,
+    features: ['Up to 15 projects', 'Unlimited tasks', 'Premium custom feedback', 'Developer chat support', 'Advanced status logs']
+  }
+];
 
 // Unified Database CRUD API wrapper to swap between Mongo and Local DB
 export const db = {
@@ -483,6 +517,109 @@ export const db = {
       const index = dbStore.notifications.findIndex(n => n._id === id || n.id === id);
       if (index !== -1) {
         const deleted = dbStore.notifications.splice(index, 1);
+        saveLocalDb(dbStore);
+        return deleted[0];
+      }
+      return null;
+    }
+  },
+  plans: {
+    async find(query: any = {}) {
+      if (isMongoEnabled) {
+        let list = await MongoPlan.find(query).lean();
+        if (list.length === 0 && Object.keys(query).length === 0) {
+          await MongoPlan.insertMany(defaultPlans as any);
+          list = await MongoPlan.find(query).lean();
+        }
+        return list;
+      }
+      const dbStore = getLocalDb();
+      if (!dbStore.plans || dbStore.plans.length === 0) {
+        dbStore.plans = JSON.parse(JSON.stringify(defaultPlans));
+        dbStore.plans.forEach((p: any) => {
+          p._id = Math.random().toString(36).substring(2, 11);
+          p.id = p._id;
+          p.createdAt = new Date().toISOString();
+        });
+        saveLocalDb(dbStore);
+      }
+      const plans = dbStore.plans;
+      if (Object.keys(query).length === 0) return plans;
+      return plans.filter((p: any) => {
+        return Object.keys(query).every(key => p[key] === query[key]);
+      });
+    },
+    async findOne(query: any) {
+      if (isMongoEnabled) {
+        const exists = await MongoPlan.findOne({} as any).lean();
+        if (!exists) {
+          await MongoPlan.insertMany(defaultPlans as any);
+        }
+        return await MongoPlan.findOne(query).lean();
+      }
+      const dbStore = getLocalDb();
+      if (!dbStore.plans || dbStore.plans.length === 0) {
+        dbStore.plans = JSON.parse(JSON.stringify(defaultPlans));
+        dbStore.plans.forEach((p: any) => {
+          p._id = Math.random().toString(36).substring(2, 11);
+          p.id = p._id;
+          p.createdAt = new Date().toISOString();
+        });
+        saveLocalDb(dbStore);
+      }
+      return dbStore.plans.find((p: any) => {
+        return Object.keys(query).every(key => p[key] === query[key]);
+      }) || null;
+    },
+    async findById(id: string) {
+      if (isMongoEnabled) return await (MongoPlan as any).findById(id).lean();
+      const dbStore = getLocalDb();
+      const plans = dbStore.plans || [];
+      return plans.find((p: any) => p._id === id || p.id === id) || null;
+    },
+    async create(data: any) {
+      if (isMongoEnabled) {
+        const plan = await MongoPlan.create(data);
+        return plan.toObject();
+      }
+      const dbStore = getLocalDb();
+      if (!dbStore.plans) dbStore.plans = [];
+      const newPlan = {
+        _id: Math.random().toString(36).substring(2, 11),
+        id: Math.random().toString(36).substring(2, 11),
+        name: data.name,
+        key: data.key,
+        price: data.price,
+        maxProjects: Number(data.maxProjects) || 2,
+        features: data.features || [],
+        createdAt: new Date().toISOString()
+      };
+      dbStore.plans.push(newPlan);
+      saveLocalDb(dbStore);
+      return newPlan;
+    },
+    async findByIdAndUpdate(id: string, update: any) {
+      if (isMongoEnabled) return await (MongoPlan as any).findByIdAndUpdate(id, update, { new: true }).lean();
+      const dbStore = getLocalDb();
+      if (!dbStore.plans) dbStore.plans = [];
+      const index = dbStore.plans.findIndex((p: any) => p._id === id || p.id === id);
+      if (index !== -1) {
+        if (update.maxProjects !== undefined) {
+          update.maxProjects = Number(update.maxProjects);
+        }
+        dbStore.plans[index] = { ...dbStore.plans[index], ...update };
+        saveLocalDb(dbStore);
+        return dbStore.plans[index];
+      }
+      return null;
+    },
+    async findByIdAndDelete(id: string) {
+      if (isMongoEnabled) return await (MongoPlan as any).findByIdAndDelete(id).lean();
+      const dbStore = getLocalDb();
+      if (!dbStore.plans) dbStore.plans = [];
+      const index = dbStore.plans.findIndex((p: any) => p._id === id || p.id === id);
+      if (index !== -1) {
+        const deleted = dbStore.plans.splice(index, 1);
         saveLocalDb(dbStore);
         return deleted[0];
       }

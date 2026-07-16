@@ -48,6 +48,16 @@ export const Dashboard: React.FC = () => {
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [availablePlans, setAvailablePlans] = useState<any[]>([]);
+
+  const fetchPlans = async () => {
+    try {
+      const res = await api.get('/api/auth/plans');
+      setAvailablePlans(res.data.plans || []);
+    } catch (err) {
+      console.error('Error fetching dynamic plans:', err);
+    }
+  };
 
   // Page level loads
   const [loading, setLoading] = useState(true);
@@ -126,6 +136,7 @@ export const Dashboard: React.FC = () => {
   // Fetch initial list of projects on mount
   useEffect(() => {
     fetchProjects(true);
+    fetchPlans();
   }, []);
 
   // Poll for collaborative updates safely using setTimeout to avoid overlapping requests
@@ -453,50 +464,55 @@ export const Dashboard: React.FC = () => {
           </div>
 
           {/* Developer Subscription Plan & Slots Usage */}
-          {user?.role === 'developer' && (
-            <div className="p-4 bg-indigo-50/40 border border-indigo-100/70 rounded-xl space-y-2.5">
-              <div className="flex justify-between items-center">
-                <span className="text-[9px] font-extrabold text-indigo-600 uppercase tracking-wider">Plan & Usage</span>
-                <span className={`text-[8px] font-extrabold px-2 py-0.5 rounded-full border ${
-                  user?.plan === 'pro' 
-                    ? 'bg-purple-50 text-purple-700 border-purple-200' 
-                    : 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                } uppercase tracking-wide`}>
-                  {user?.plan === 'pro' ? 'Pro Plan' : 'Free Plan'}
-                </span>
-              </div>
-              <div className="space-y-1">
-                <div className="flex justify-between text-[10px] font-bold text-slate-600">
-                  <span>Workspace Slots</span>
-                  <span>{projects.filter(p => p.status !== 'archived').length} / {user?.plan === 'pro' ? 15 : 2} used</span>
+          {user?.role === 'developer' && (() => {
+            const currentPlanObj = availablePlans.find(p => p.key === (user?.plan || 'free').toLowerCase());
+            const maxSlots = currentPlanObj ? currentPlanObj.maxProjects : (user?.plan === 'pro' ? 15 : 2);
+            const planName = currentPlanObj ? currentPlanObj.name : (user?.plan === 'pro' ? 'Pro Plan' : 'Free Plan');
+            const isProColor = user?.plan === 'pro' || (currentPlanObj && currentPlanObj.key !== 'free');
+            return (
+              <div className="p-4 bg-indigo-50/40 border border-indigo-100/70 rounded-xl space-y-2.5">
+                <div className="flex justify-between items-center">
+                  <span className="text-[9px] font-extrabold text-indigo-600 uppercase tracking-wider">Plan & Usage</span>
+                  <span className={`text-[8px] font-extrabold px-2 py-0.5 rounded-full border ${
+                    isProColor 
+                      ? 'bg-purple-50 text-purple-700 border-purple-200' 
+                      : 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                  } uppercase tracking-wide`}>
+                    {planName}
+                  </span>
                 </div>
-                <div className="w-full bg-slate-100/80 rounded-full h-1.5 overflow-hidden">
-                  <div 
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      user?.plan === 'pro' ? 'bg-purple-600' : 'bg-indigo-600'
-                    }`}
-                    style={{ 
-                      width: `${Math.min(100, (projects.filter(p => p.status !== 'archived').length / (user?.plan === 'pro' ? 15 : 2)) * 100)}%` 
-                    }}
-                  />
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[10px] font-bold text-slate-600">
+                    <span>Workspace Slots</span>
+                    <span>{projects.filter(p => p.status !== 'archived').length} / {maxSlots} used</span>
+                  </div>
+                  <div className="w-full bg-slate-100/80 rounded-full h-1.5 overflow-hidden">
+                    <div 
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        isProColor ? 'bg-purple-600' : 'bg-indigo-600'
+                      }`}
+                      style={{ 
+                        width: `${Math.min(100, (projects.filter(p => p.status !== 'archived').length / maxSlots) * 100)}%` 
+                      }}
+                    />
+                  </div>
                 </div>
+                <button
+                  id="sidebar-upgrade-btn"
+                  onClick={() => {
+                    if (activeProject) {
+                      setActiveTab('settings');
+                    } else {
+                      alert('Please select or create a project workspace to access Subscription settings tab.');
+                    }
+                  }}
+                  className="w-full text-center py-1.5 bg-white hover:bg-slate-50 text-indigo-600 text-[10px] font-extrabold rounded-lg border border-indigo-200 cursor-pointer shadow-xs transition-colors"
+                >
+                  {user?.plan === 'pro' ? 'Manage Subscription' : 'Upgrade Slots'}
+                </button>
               </div>
-              <button
-                id="sidebar-upgrade-btn"
-                onClick={() => {
-                  if (activeProject) {
-                    setActiveTab('settings');
-                  } else {
-                    // If no project is active, let's establish a temp or alert
-                    alert('Please select or create a project workspace to access Subscription settings tab.');
-                  }
-                }}
-                className="w-full text-center py-1.5 bg-white hover:bg-slate-50 text-indigo-600 text-[10px] font-extrabold rounded-lg border border-indigo-200 cursor-pointer shadow-xs transition-colors"
-              >
-                {user?.plan === 'pro' ? 'Manage Subscription' : 'Upgrade Slots'}
-              </button>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Quick instructions panel */}
           <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl space-y-2 mt-auto">
@@ -717,64 +733,115 @@ export const Dashboard: React.FC = () => {
                           <p className="text-xs text-slate-500 mt-1">Monitor your collaboration workspace slots and manage simulated billing tiers.</p>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {/* Free Card */}
-                          <div className={`p-5 rounded-xl border transition-all ${
-                            user?.plan !== 'pro' 
-                              ? 'border-indigo-600 bg-indigo-50/20 ring-2 ring-indigo-600/10' 
-                              : 'border-slate-100 bg-slate-50/40 opacity-70'
-                          }`}>
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <span className="text-[9px] font-extrabold text-indigo-600 uppercase tracking-wider">Basic Starter</span>
-                                <h4 className="text-sm font-bold text-slate-900 mt-0.5">Free Plan</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {availablePlans && availablePlans.length > 0 ? (
+                            availablePlans.map((p: any) => {
+                              const isActive = (user?.plan || 'free').toLowerCase() === p.key.toLowerCase();
+                              return (
+                                <div key={p.key} className={`p-5 rounded-xl border transition-all flex flex-col justify-between ${
+                                  isActive 
+                                    ? 'border-indigo-600 bg-indigo-50/10 ring-2 ring-indigo-600/10' 
+                                    : 'border-slate-100 bg-slate-50/40 opacity-80 hover:opacity-100'
+                                }`}>
+                                  <div>
+                                    <div className="flex justify-between items-start">
+                                      <div>
+                                        <span className="text-[9px] font-extrabold text-indigo-600 uppercase tracking-wider block">
+                                          {p.key === 'free' ? 'Basic Starter' : p.key === 'pro' ? 'Agency Scale' : 'Special Tier'}
+                                        </span>
+                                        <h4 className="text-sm font-bold text-slate-900 mt-0.5">{p.name}</h4>
+                                      </div>
+                                      {isActive && (
+                                        <span className="text-[9px] font-extrabold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-200">
+                                          ACTIVE PLAN
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">
+                                      {p.description || `Pricing option including up to ${p.maxProjects} project slots with direct collaborative client feedback loops.`}
+                                    </p>
+                                    {p.features && p.features.length > 0 && (
+                                      <ul className="mt-3 space-y-1">
+                                        {p.features.map((feat: string, i: number) => (
+                                          <li key={i} className="text-[10px] text-slate-500 flex items-center gap-1.5">
+                                            <span className="text-indigo-500 font-extrabold text-[8px]">✓</span>
+                                            <span>{feat}</span>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    )}
+                                  </div>
+                                  <div className="mt-4 border-t border-dashed border-slate-200/60 pt-3 flex justify-between items-center">
+                                    <div>
+                                      <span className="text-xs font-bold text-slate-950 block">{p.maxProjects} Active Workspaces</span>
+                                      <span className="text-[10px] text-slate-400 block mt-0.5">Core taskboard & pin boards</span>
+                                    </div>
+                                    <span className="text-xs font-extrabold text-slate-900">${p.price} <span className="text-[9px] font-normal text-slate-400">/ mo</span></span>
+                                  </div>
+                                </div>
+                              );
+                            })
+                          ) : (
+                            <>
+                              {/* Free Card */}
+                              <div className={`p-5 rounded-xl border transition-all ${
+                                user?.plan !== 'pro' 
+                                  ? 'border-indigo-600 bg-indigo-50/20 ring-2 ring-indigo-600/10' 
+                                  : 'border-slate-100 bg-slate-50/40 opacity-70'
+                              }`}>
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <span className="text-[9px] font-extrabold text-indigo-600 uppercase tracking-wider">Basic Starter</span>
+                                    <h4 className="text-sm font-bold text-slate-900 mt-0.5">Free Plan</h4>
+                                  </div>
+                                  {user?.plan !== 'pro' && (
+                                    <span className="text-[9px] font-extrabold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-200">
+                                      ACTIVE PLAN
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">
+                                  Perfect for independent freelancers testing single prototype builds.
+                                </p>
+                                <div className="mt-4 border-t border-dashed border-slate-200/60 pt-3 flex justify-between items-center">
+                                  <div>
+                                    <span className="text-xs font-bold text-slate-950 block">2 Active Workspaces</span>
+                                    <span className="text-[10px] text-slate-400 block mt-0.5">Core taskboard & pin boards</span>
+                                  </div>
+                                  <span className="text-xs font-extrabold text-slate-900">$0 <span className="text-[9px] font-normal text-slate-400">/ mo</span></span>
+                                </div>
                               </div>
-                              {user?.plan !== 'pro' && (
-                                <span className="text-[9px] font-extrabold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-200">
-                                  ACTIVE PLAN
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">
-                              Perfect for independent freelancers testing single prototype builds.
-                            </p>
-                            <div className="mt-4 border-t border-dashed border-slate-200/60 pt-3 flex justify-between items-center">
-                              <div>
-                                <span className="text-xs font-bold text-slate-950 block">2 Active Workspaces</span>
-                                <span className="text-[10px] text-slate-400 block mt-0.5">Core taskboard & pin boards</span>
-                              </div>
-                              <span className="text-xs font-extrabold text-slate-900">$0 <span className="text-[9px] font-normal text-slate-400">/ mo</span></span>
-                            </div>
-                          </div>
 
-                          {/* Pro Card */}
-                          <div className={`p-5 rounded-xl border transition-all ${
-                            user?.plan === 'pro' 
-                              ? 'border-purple-600 bg-purple-50/20 ring-2 ring-purple-600/10' 
-                              : 'border-slate-100 bg-slate-50/40 opacity-70 hover:opacity-100'
-                          }`}>
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <span className="text-[9px] font-extrabold text-purple-600 uppercase tracking-wider">Agency Scale</span>
-                                <h4 className="text-sm font-bold text-slate-900 mt-0.5">Pro Plan</h4>
+                              {/* Pro Card */}
+                              <div className={`p-5 rounded-xl border transition-all ${
+                                user?.plan === 'pro' 
+                                  ? 'border-purple-600 bg-purple-50/20 ring-2 ring-purple-600/10' 
+                                  : 'border-slate-100 bg-slate-50/40 opacity-70 hover:opacity-100'
+                              }`}>
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <span className="text-[9px] font-extrabold text-purple-600 uppercase tracking-wider">Agency Scale</span>
+                                    <h4 className="text-sm font-bold text-slate-900 mt-0.5">Pro Plan</h4>
+                                  </div>
+                                  {user?.plan === 'pro' && (
+                                    <span className="text-[9px] font-extrabold bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full border border-purple-200">
+                                      ACTIVE PLAN
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">
+                                  Run multiple parallel collaborative staging platforms for a full client list.
+                                </p>
+                                <div className="mt-4 border-t border-dashed border-slate-200/60 pt-3 flex justify-between items-center">
+                                  <div>
+                                    <span className="text-xs font-bold text-slate-950 block">15 Active Workspaces</span>
+                                    <span className="text-[10px] text-slate-400 block mt-0.5">High slot limits & priority syncing</span>
+                                  </div>
+                                  <span className="text-xs font-extrabold text-slate-900">$15 <span className="text-[9px] font-normal text-slate-400">/ mo</span></span>
+                                </div>
                               </div>
-                              {user?.plan === 'pro' && (
-                                <span className="text-[9px] font-extrabold bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full border border-purple-200">
-                                  ACTIVE PLAN
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">
-                              Run multiple parallel collaborative staging platforms for a full client list.
-                            </p>
-                            <div className="mt-4 border-t border-dashed border-slate-200/60 pt-3 flex justify-between items-center">
-                              <div>
-                                <span className="text-xs font-bold text-slate-950 block">15 Active Workspaces</span>
-                                <span className="text-[10px] text-slate-400 block mt-0.5">High slot limits & priority syncing</span>
-                              </div>
-                              <span className="text-xs font-extrabold text-slate-900">$15 <span className="text-[9px] font-normal text-slate-400">/ mo</span></span>
-                            </div>
-                          </div>
+                            </>
+                          )}
                         </div>
 
                         {/* Toggler button for simulated payment flow */}
@@ -784,25 +851,36 @@ export const Dashboard: React.FC = () => {
                             <span className="text-xs text-slate-600 font-medium">
                               {user?.plan === 'pro' 
                                 ? 'You have access to 15 project workspace slots.' 
-                                : 'Instantly unlock up to 15 parallel project workspace slots.'}
+                                : `Instantly upgrade your account to configure slot allocation settings.`}
                             </span>
                           </div>
                           
-                          <button
-                            id="simulate-upgrade-btn"
-                            type="button"
-                            onClick={async () => {
-                              const targetPlan = user?.plan === 'pro' ? 'free' : 'pro';
-                              await updatePlan(targetPlan);
-                            }}
-                            className={`py-2 px-4 rounded-lg text-xs font-bold shadow-sm transition-all cursor-pointer whitespace-nowrap ${
-                              user?.plan === 'pro'
-                                ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
-                                : 'bg-indigo-600 hover:bg-indigo-700 text-white'
-                            }`}
-                          >
-                            {user?.plan === 'pro' ? 'Revert to Free' : 'Upgrade to Pro'}
-                          </button>
+                          <div className="flex flex-wrap gap-2">
+                            {(availablePlans && availablePlans.length > 0 
+                              ? availablePlans 
+                              : [{key: 'free', name: 'Free'}, {key: 'pro', name: 'Pro'}]
+                            ).map((p: any) => {
+                              const isActive = (user?.plan || 'free').toLowerCase() === p.key.toLowerCase();
+                              return (
+                                <button
+                                  key={p.key}
+                                  type="button"
+                                  onClick={async () => {
+                                    if (isActive) return;
+                                    await updatePlan(p.key.toLowerCase());
+                                  }}
+                                  disabled={isActive}
+                                  className={`py-1.5 px-3 rounded-lg text-[10px] font-bold shadow-sm transition-all cursor-pointer whitespace-nowrap ${
+                                    isActive
+                                      ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                                      : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                                  }`}
+                                >
+                                  {isActive ? `Active ${p.name}` : `Upgrade to ${p.name}`}
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
                       </div>
                     )}

@@ -54,6 +54,7 @@ router.get('/users', async (req: any, res: any) => {
       name: u.name,
       email: u.email,
       role: u.role,
+      plan: u.plan || 'free',
       createdAt: u.createdAt,
     }));
     res.json({ users });
@@ -162,6 +163,30 @@ router.delete('/projects/:id', async (req: any, res: any) => {
   }
 });
 
+// Update user plan
+router.put('/users/:id/plan', async (req: any, res: any) => {
+  const { id } = req.params;
+  const { plan } = req.body;
+
+  if (!plan || !['free', 'pro'].includes(plan)) {
+    return res.status(400).json({ error: 'Invalid plan type. Must be "free" or "pro".' });
+  }
+
+  try {
+    const userToUpdate = await db.users.findById(id);
+    if (!userToUpdate) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    await db.users.updateOne({ email: userToUpdate.email }, { plan });
+
+    res.json({ success: true, message: `Plan for user ${userToUpdate.name} updated to ${plan} successfully.` });
+  } catch (err: any) {
+    console.error('Error updating user plan:', err);
+    res.status(500).json({ error: 'Server error while updating user plan' });
+  }
+});
+
 // 6. Broadcast notification to all registered users
 router.post('/broadcast', async (req: any, res: any) => {
   const { text } = req.body;
@@ -174,6 +199,7 @@ router.post('/broadcast', async (req: any, res: any) => {
     for (const u of users) {
       await db.notifications.create({
         userId: u._id || u.id,
+        projectId: 'system',
         text: `[System Announcement]: ${text}`,
         read: false,
       });
@@ -183,6 +209,103 @@ router.post('/broadcast', async (req: any, res: any) => {
   } catch (err: any) {
     console.error('Error broadcasting system notification:', err);
     res.status(500).json({ error: 'Server error while broadcasting notification' });
+  }
+});
+
+// Get all pricing plans
+router.get('/plans', async (req: any, res: any) => {
+  try {
+    const plans = await db.plans.find({});
+    res.json({ plans });
+  } catch (err: any) {
+    console.error('Error fetching plans:', err);
+    res.status(500).json({ error: 'Server error while fetching plans' });
+  }
+});
+
+// Create a new pricing plan
+router.post('/plans', async (req: any, res: any) => {
+  const { name, key, price, maxProjects, features } = req.body;
+  if (!name || !key || !price) {
+    return res.status(400).json({ error: 'Name, key and price are required.' });
+  }
+
+  try {
+    const lowercaseKey = key.trim().toLowerCase();
+    const exists = await db.plans.findOne({ key: lowercaseKey });
+    if (exists) {
+      return res.status(400).json({ error: 'Plan key already exists. Use a unique key.' });
+    }
+
+    const newPlan = await db.plans.create({
+      name,
+      key: lowercaseKey,
+      price,
+      maxProjects: Number(maxProjects) || 2,
+      features: Array.isArray(features) ? features : []
+    });
+
+    res.status(201).json({ success: true, plan: newPlan });
+  } catch (err: any) {
+    console.error('Error creating plan:', err);
+    res.status(500).json({ error: 'Server error while creating plan' });
+  }
+});
+
+// Update an existing pricing plan
+router.put('/plans/:id', async (req: any, res: any) => {
+  const { id } = req.params;
+  const { name, key, price, maxProjects, features } = req.body;
+
+  try {
+    const plan = await db.plans.findById(id);
+    if (!plan) {
+      return res.status(404).json({ error: 'Plan not found' });
+    }
+
+    const updates: any = {};
+    if (name) updates.name = name;
+    if (key) updates.key = key.trim().toLowerCase();
+    if (price) updates.price = price;
+    if (maxProjects !== undefined) updates.maxProjects = Number(maxProjects);
+    if (features) updates.features = Array.isArray(features) ? features : [];
+
+    // If key is being changed, make sure it remains unique
+    if (updates.key && updates.key !== plan.key) {
+      const exists = await db.plans.findOne({ key: updates.key });
+      if (exists) {
+        return res.status(400).json({ error: 'New plan key is already in use by another plan.' });
+      }
+    }
+
+    const updatedPlan = await db.plans.findByIdAndUpdate(id, updates);
+    res.json({ success: true, plan: updatedPlan });
+  } catch (err: any) {
+    console.error('Error updating plan:', err);
+    res.status(500).json({ error: 'Server error while updating plan' });
+  }
+});
+
+// Delete a pricing plan
+router.delete('/plans/:id', async (req: any, res: any) => {
+  const { id } = req.params;
+
+  try {
+    const plan = await db.plans.findById(id);
+    if (!plan) {
+      return res.status(404).json({ error: 'Plan not found' });
+    }
+
+    // Do not allow deleting the essential 'free' plan to prevent breaking the platform default
+    if (plan.key === 'free') {
+      return res.status(400).json({ error: 'Deleting the core "free" plan is forbidden.' });
+    }
+
+    await db.plans.findByIdAndDelete(id);
+    res.json({ success: true, message: 'Plan deleted successfully.' });
+  } catch (err: any) {
+    console.error('Error deleting plan:', err);
+    res.status(500).json({ error: 'Server error while deleting plan' });
   }
 });
 

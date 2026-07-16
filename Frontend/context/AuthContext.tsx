@@ -5,7 +5,7 @@ export interface User {
   name: string;
   email: string;
   role: 'developer' | 'client' | 'admin';
-  plan?: 'free' | 'pro';
+  plan?: string;
   createdAt?: string;
 }
 
@@ -18,7 +18,7 @@ interface AuthContextType {
   registerDeveloper: (name: string, email: string, password: string) => Promise<boolean>;
   registerClient: (name: string, email: string, password: string) => Promise<boolean>;
   registerAdmin: (name: string, email: string, password: string) => Promise<boolean>;
-  updatePlan: (plan: 'free' | 'pro') => Promise<boolean>;
+  updatePlan: (plan: string) => Promise<boolean>;
   logout: () => void;
   clearError: () => void;
 }
@@ -185,7 +185,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const updatePlan = async (plan: 'free' | 'pro'): Promise<boolean> => {
+  const updatePlan = async (plan: string): Promise<boolean> => {
     setError(null);
     setLoading(true);
     try {

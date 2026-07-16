@@ -90,7 +90,7 @@ router.post('/register-client', async (req: any, res: any) => {
     const existingUser = await db.users.findOne({ email: lowercaseEmail });
     if (existingUser) {
       // If client exists but does not have a password set (e.g. was invited/placeholder), we can update it
-      if (!existingUser.password) {
+      if (!existingUser.password || existingUser.password === 'placeholder_password_not_set') {
         const hashedPassword = await bcrypt.hash(password, 10);
         await db.users.updateOne({ email: lowercaseEmail }, { name, password: hashedPassword, role: 'client' });
         
@@ -155,7 +155,7 @@ router.post('/login', async (req: any, res: any) => {
 
   try {
     const user = await db.users.findOne({ email: email.toLowerCase() });
-    if (!user || !user.password) {
+    if (!user || !user.password || user.password === 'placeholder_password_not_set') {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
@@ -190,18 +190,34 @@ router.get('/me', authenticateToken, (req: any, res: any) => {
   return res.json({ user: req.user });
 });
 
+// Get all dynamic plans (Authenticated)
+router.get('/plans', authenticateToken, async (req: any, res: any) => {
+  try {
+    const plans = await db.plans.find({});
+    res.json({ plans });
+  } catch (err: any) {
+    console.error('Error fetching dynamic plans:', err);
+    res.status(500).json({ error: 'Server error while fetching dynamic plans' });
+  }
+});
+
 // 5. Update user plan (Simulated payment-free Upgrade)
 router.put('/plan', authenticateToken, async (req: any, res: any) => {
   const { plan } = req.body;
   const { id } = req.user;
 
-  if (plan !== 'free' && plan !== 'pro') {
-    return res.status(400).json({ error: 'Invalid plan type' });
+  if (!plan) {
+    return res.status(400).json({ error: 'Plan is required' });
   }
 
   try {
-    await db.users.updateOne({ _id: id }, { plan });
-    await db.users.updateOne({ id: id }, { plan });
+    const planExists = await db.plans.findOne({ key: plan.toLowerCase() });
+    if (!planExists) {
+      return res.status(400).json({ error: 'The requested plan is invalid or not configured on the system.' });
+    }
+
+    await db.users.updateOne({ _id: id }, { plan: plan.toLowerCase() });
+    await db.users.updateOne({ id: id }, { plan: plan.toLowerCase() });
 
     const updatedUser = await db.users.findById(id);
     if (!updatedUser) {
@@ -209,7 +225,7 @@ router.put('/plan', authenticateToken, async (req: any, res: any) => {
     }
 
     return res.json({
-      message: `Successfully updated to ${plan} plan`,
+      message: `Successfully updated to ${updatedUser.plan} plan`,
       user: {
         id: updatedUser._id || updatedUser.id,
         name: updatedUser.name,

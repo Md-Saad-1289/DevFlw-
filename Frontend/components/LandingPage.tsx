@@ -1863,146 +1863,148 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
         </div>
       )}
 
-      {/* FLOATING CONVERSATIONAL ASSISTANT BOT WIDGET */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
-        <AnimatePresence>
-          {isBotOpen && (
-            <motion.div
-              initial={{ opacity: 0, y: 30, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 30, scale: 0.9 }}
-              className="bg-white rounded-2xl shadow-2xl border border-slate-200/80 w-80 md:w-96 overflow-hidden flex flex-col mb-4 max-h-[500px] text-slate-800"
-            >
-              {/* Header */}
-              <div className="bg-indigo-900 text-white p-4 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-indigo-600/30 flex items-center justify-center text-indigo-300 font-bold border border-indigo-700">
-                    <MessageSquare className="w-4 h-4 text-indigo-300" />
+      {/* FLOATING CONVERSATIONAL ASSISTANT BOT WIDGET (TEMPORARILY HIDDEN) */}
+      {false && (
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+          <AnimatePresence>
+            {isBotOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: 30, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 30, scale: 0.9 }}
+                className="bg-white rounded-2xl shadow-2xl border border-slate-200/80 w-80 md:w-96 overflow-hidden flex flex-col mb-4 max-h-[500px] text-slate-800"
+              >
+                {/* Header */}
+                <div className="bg-indigo-900 text-white p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-indigo-600/30 flex items-center justify-center text-indigo-300 font-bold border border-indigo-700">
+                      <MessageSquare className="w-4 h-4 text-indigo-300" />
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-bold leading-none">DevFlw Assistant</h3>
+                      <span className="text-[9px] text-emerald-400 font-medium flex items-center gap-1 mt-1 font-mono uppercase tracking-wider">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        Online & Ready
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-xs font-bold leading-none">DevFlw Assistant</h3>
-                    <span className="text-[9px] text-emerald-400 font-medium flex items-center gap-1 mt-1 font-mono uppercase tracking-wider">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      Online & Ready
-                    </span>
-                  </div>
+                  <button
+                    onClick={() => setIsBotOpen(false)}
+                    className="p-1 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-all cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
-                <button
-                  onClick={() => setIsBotOpen(false)}
-                  className="p-1 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-all cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
 
-              {/* Chat Messages Log Container */}
-              <div className="flex-1 p-4 overflow-y-auto space-y-3 max-h-[280px] bg-slate-50">
-                {botMessages.map((msg, i) => {
-                  const isBot = msg.sender === 'bot';
-                  return (
-                    <div key={i} className={`flex ${isBot ? 'justify-start' : 'justify-end'}`}>
-                      <div className={`p-3 rounded-2xl text-[11px] leading-relaxed max-w-[85%] ${
-                        isBot 
-                          ? 'bg-white border border-slate-200 rounded-tl-none text-slate-700 shadow-sm' 
-                          : 'bg-indigo-600 text-white rounded-tr-none shadow-md shadow-indigo-600/10'
-                      }`}>
-                        {msg.text}
-                        <span className={`block text-[8px] mt-1 text-right font-mono ${isBot ? 'text-slate-400' : 'text-indigo-200'}`}>
-                          {msg.time}
-                        </span>
+                {/* Chat Messages Log Container */}
+                <div className="flex-1 p-4 overflow-y-auto space-y-3 max-h-[280px] bg-slate-50">
+                  {botMessages.map((msg, i) => {
+                    const isBot = msg.sender === 'bot';
+                    return (
+                      <div key={i} className={`flex ${isBot ? 'justify-start' : 'justify-end'}`}>
+                        <div className={`p-3 rounded-2xl text-[11px] leading-relaxed max-w-[85%] ${
+                          isBot 
+                            ? 'bg-white border border-slate-200 rounded-tl-none text-slate-700 shadow-sm' 
+                            : 'bg-indigo-600 text-white rounded-tr-none shadow-md shadow-indigo-600/10'
+                        }`}>
+                          {msg.text}
+                          <span className={`block text-[8px] mt-1 text-right font-mono ${isBot ? 'text-slate-400' : 'text-indigo-200'}`}>
+                            {msg.time}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {botTyping && (
+                    <div className="flex justify-start">
+                      <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-none p-3 shadow-sm flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                        <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                        <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                       </div>
                     </div>
-                  );
-                })}
+                  )}
+                </div>
 
-                {botTyping && (
-                  <div className="flex justify-start">
-                    <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-none p-3 shadow-sm flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <span className="w-1.5 h-1.5 bg-indigo-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                {/* Interactive Quick-Options Selector */}
+                {showBotOptions && botCurrentOptions.length > 0 && (
+                  <div className="p-3 border-t border-slate-100 bg-white space-y-1.5 max-h-[140px] overflow-y-auto">
+                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block mb-1 px-1">
+                      Select an inquiry
+                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {botCurrentOptions.map((opt) => (
+                        <button
+                          key={opt}
+                          onClick={() => handleBotSelectOption(opt, optionLabels[opt] || 'Inquire')}
+                          className="py-1 px-2.5 bg-slate-100 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 text-slate-700 hover:text-indigo-600 text-[10px] font-bold rounded-full transition-all cursor-pointer text-left leading-none"
+                        >
+                          {optionLabels[opt] || opt}
+                        </button>
+                      ))}
                     </div>
                   </div>
                 )}
-              </div>
 
-              {/* Interactive Quick-Options Selector */}
-              {showBotOptions && botCurrentOptions.length > 0 && (
-                <div className="p-3 border-t border-slate-100 bg-white space-y-1.5 max-h-[140px] overflow-y-auto">
-                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest block mb-1 px-1">
-                    Select an inquiry
-                  </span>
-                  <div className="flex flex-wrap gap-1">
-                    {botCurrentOptions.map((opt) => (
-                      <button
-                        key={opt}
-                        onClick={() => handleBotSelectOption(opt, optionLabels[opt] || 'Inquire')}
-                        className="py-1 px-2.5 bg-slate-100 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 text-slate-700 hover:text-indigo-600 text-[10px] font-bold rounded-full transition-all cursor-pointer text-left leading-none"
-                      >
-                        {optionLabels[opt] || opt}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Manual Question Input Bar */}
-              <form onSubmit={handleCustomBotSubmit} className="border-t border-slate-100 p-3 bg-white flex gap-2">
-                <input
-                  type="text"
-                  value={customBotInput}
-                  onChange={(e) => setCustomBotInput(e.target.value)}
-                  placeholder="Ask a custom question..."
-                  className="flex-1 text-xs py-1.5 px-3 border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-600 bg-slate-50"
-                />
-                <button
-                  type="submit"
-                  disabled={!customBotInput.trim()}
-                  className="py-1.5 px-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:hover:bg-indigo-600 text-white text-[10px] font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center"
-                >
-                  Ask
-                </button>
-              </form>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Big Glow Floating Circle Trigger */}
-        <button
-          onClick={() => setIsBotOpen(!isBotOpen)}
-          className="w-14 h-14 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center shadow-xl shadow-indigo-600/30 hover:scale-105 active:scale-95 transition-all cursor-pointer relative group"
-        >
-          {/* Pulsing ring */}
-          <span className="absolute -inset-1 rounded-full border-2 border-indigo-500/30 animate-ping opacity-75 group-hover:opacity-0" />
-          
-          <AnimatePresence mode="wait">
-            {isBotOpen ? (
-              <motion.div
-                key="close"
-                initial={{ rotate: -90, opacity: 0 }}
-                animate={{ rotate: 0, opacity: 1 }}
-                exit={{ rotate: 90, opacity: 0 }}
-                transition={{ duration: 0.15 }}
-              >
-                <X className="w-6 h-6" />
-              </motion.div>
-            ) : (
-              <motion.div
-                key="chat"
-                initial={{ rotate: 90, opacity: 0 }}
-                animate={{ rotate: 0, opacity: 1 }}
-                exit={{ rotate: -90, opacity: 0 }}
-                transition={{ duration: 0.15 }}
-                className="relative"
-              >
-                <MessageSquare className="w-6 h-6" />
-                {/* Notification Badge Dot */}
-                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-rose-500 border-2 border-indigo-600" />
+                {/* Manual Question Input Bar */}
+                <form onSubmit={handleCustomBotSubmit} className="border-t border-slate-100 p-3 bg-white flex gap-2">
+                  <input
+                    type="text"
+                    value={customBotInput}
+                    onChange={(e) => setCustomBotInput(e.target.value)}
+                    placeholder="Ask a custom question..."
+                    className="flex-1 text-xs py-1.5 px-3 border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-600 bg-slate-50"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!customBotInput.trim()}
+                    className="py-1.5 px-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:hover:bg-indigo-600 text-white text-[10px] font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center"
+                  >
+                    Ask
+                  </button>
+                </form>
               </motion.div>
             )}
           </AnimatePresence>
-        </button>
-      </div>
+
+          {/* Big Glow Floating Circle Trigger */}
+          <button
+            onClick={() => setIsBotOpen(!isBotOpen)}
+            className="w-14 h-14 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center shadow-xl shadow-indigo-600/30 hover:scale-105 active:scale-95 transition-all cursor-pointer relative group"
+          >
+            {/* Pulsing ring */}
+            <span className="absolute -inset-1 rounded-full border-2 border-indigo-500/30 animate-ping opacity-75 group-hover:opacity-0" />
+            
+            <AnimatePresence mode="wait">
+              {isBotOpen ? (
+                <motion.div
+                  key="close"
+                  initial={{ rotate: -90, opacity: 0 }}
+                  animate={{ rotate: 0, opacity: 1 }}
+                  exit={{ rotate: 90, opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  <X className="w-6 h-6" />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="chat"
+                  initial={{ rotate: 90, opacity: 0 }}
+                  animate={{ rotate: 0, opacity: 1 }}
+                  exit={{ rotate: -90, opacity: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="relative"
+                >
+                  <MessageSquare className="w-6 h-6" />
+                  {/* Notification Badge Dot */}
+                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-rose-500 border-2 border-indigo-600" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </button>
+        </div>
+      )}
 
     </div>
   );
