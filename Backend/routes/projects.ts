@@ -63,6 +63,14 @@ router.post('/', authenticateToken, async (req: any, res: any) => {
       const lowercaseEmail = clientEmail.trim().toLowerCase();
       clientsList.push(lowercaseEmail);
 
+      // Verify maxClients limit
+      const maxClientsLimit = userPlan ? (userPlan.maxClients || 5) : (plan === 'pro' ? 10 : 2);
+      if (clientsList.length > maxClientsLimit) {
+        return res.status(403).json({
+          error: `Your subscription plan (${userPlan?.name || (plan === 'pro' ? 'Pro' : 'Free')}) only allows up to ${maxClientsLimit} clients per project workspace. Please upgrade to invite clients.`
+        });
+      }
+
       // Check if client user account exists, if not create a placeholder
       const existingUser = await db.users.findOne({ email: lowercaseEmail });
       if (!existingUser) {
@@ -276,19 +284,50 @@ router.post('/:id/invite', authenticateToken, async (req: any, res: any) => {
       return res.status(400).json({ error: 'Client is already part of this project' });
     }
 
+    // Verify developer's plan maxClients limit
+    const planKey = devUser?.plan || req.user.plan || 'free';
+    const userPlan = await db.plans.findOne({ key: planKey.toLowerCase() });
+    const maxClientsLimit = userPlan ? (userPlan.maxClients || 5) : (planKey === 'pro' ? 10 : 2);
+
+    if (clients.length >= maxClientsLimit) {
+      return res.status(403).json({
+        error: `Your subscription plan (${userPlan?.name || (planKey === 'pro' ? 'Pro' : 'Free')}) only allows up to ${maxClientsLimit} clients per project workspace. You have already invited ${clients.length} clients. Please upgrade to a higher plan to add more clients.`
+      });
+    }
+
     // Add client email to list
     const updatedClients = [...clients, lowercaseEmail];
     const updatedProject = await db.projects.findByIdAndUpdate(id, { clients: updatedClients });
 
     // Check if account exists, create placeholder if not
     let clientUser = await db.users.findOne({ email: lowercaseEmail });
+    let activationToken = '';
+    let isNewClient = false;
+
     if (!clientUser) {
+      isNewClient = true;
+      activationToken = 'act_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
       clientUser = await db.users.create({
-        name: clientEmail.split('@')[0],
+        name: clientEmail.trim().split('@')[0],
         email: lowercaseEmail,
         password: 'placeholder_password_not_set',
-        role: 'client'
+        role: 'client',
+        activationToken: activationToken
       });
+    } else if (clientUser.password === 'placeholder_password_not_set' || !clientUser.password) {
+      isNewClient = true;
+      activationToken = clientUser.activationToken || ('act_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15));
+      if (!clientUser.activationToken) {
+        await db.users.updateOne({ _id: clientUser._id || clientUser.id }, { activationToken });
+      }
+    }
+
+    // Generate activation link if new
+    let activationLink = '';
+    if (isNewClient && activationToken) {
+      const host = req.headers.host || 'localhost:3000';
+      const protocol = req.headers['x-forwarded-proto'] || (req.secure ? 'https' : 'http');
+      activationLink = `${protocol}://${host}/activate?token=${activationToken}&email=${encodeURIComponent(lowercaseEmail)}`;
     }
 
     // Notify client
@@ -298,7 +337,11 @@ router.post('/:id/invite', authenticateToken, async (req: any, res: any) => {
       text: `You have been added to the workspace for "${project.name}"`
     });
 
-    return res.json({ project: updatedProject });
+    return res.json({
+      project: updatedProject,
+      isNewClient,
+      activationLink
+    });
   } catch (err: any) {
     console.error('Error inviting client:', err);
     return res.status(500).json({ error: 'Server error while inviting client' });

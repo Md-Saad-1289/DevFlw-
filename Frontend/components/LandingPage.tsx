@@ -1,8 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Code, Users, Eye, CheckSquare, MessageSquare, Bell, ArrowRight, 
-  Sparkles, Shield, Zap, Layers, ChevronRight, Play, Check, Server, X,
+  Sparkles, Shield, Zap, Layers, ChevronLeft, ChevronRight, Play, Check, Server, X,
   Plus, Calendar, Maximize2, Minimize2, Laptop, Tablet, Smartphone, Tag, Info, Trash2, HelpCircle
 } from 'lucide-react';
 
@@ -17,8 +17,52 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
   const [supportEmail, setSupportEmail] = useState('');
   const [supportMessage, setSupportMessage] = useState('');
 
+  // Live Plans fetching for Calculator recommendations
+  const [availablePlans, setAvailablePlans] = useState<any[]>([
+    { key: 'free', name: 'Free', price: '0', maxProjects: 2, maxClients: 2, isActive: true, subNotes: ['Basic branding only', 'Self-service community support'] },
+    { key: 'pro', name: 'Pro', price: '29', beforePrice: '39', maxProjects: 15, maxClients: 10, isActive: true, subNotes: ['Invite up to 10 clients', 'White-labeled feedback overlays', 'Direct private chat channels', 'Priority response SLA'] }
+  ]);
+
+  useEffect(() => {
+    fetch('/api/admin/plans')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.success && Array.isArray(data.plans)) {
+          setAvailablePlans(data.plans);
+        }
+      })
+      .catch(err => {
+        console.error('Error fetching plans for calculator:', err);
+      });
+  }, []);
+
   // Landing Page Interactive Lifecycles & Conversational Upgrades
   const [activeLifecycleStage, setActiveLifecycleStage] = useState<string>('Client Review');
+
+  // Product Visuals Slider Ref and scroll tracker state
+  const visualScrollRef = useRef<HTMLDivElement>(null);
+  const [visualScrollIndex, setVisualScrollIndex] = useState(0);
+
+  const scrollVisuals = (direction: 'left' | 'right') => {
+    if (visualScrollRef.current) {
+      const scrollAmount = direction === 'left' ? -360 : 360;
+      visualScrollRef.current.scrollBy({
+        left: scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  const handleVisualScroll = () => {
+    if (visualScrollRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = visualScrollRef.current;
+      const maxScroll = scrollWidth - clientWidth;
+      if (maxScroll <= 0) return;
+      const pct = scrollLeft / maxScroll;
+      const index = Math.min(3, Math.max(0, Math.round(pct * 3)));
+      setVisualScrollIndex(index);
+    }
+  };
   
   // Savings Calculator States
   const [calcProjects, setCalcProjects] = useState<number>(3);
@@ -1305,164 +1349,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
         </div>
       </section>
 
-      {/* INTERACTIVE TIME & COST SAVINGS CALCULATOR (ROI ACCELERATOR) */}
-      <section className="py-20 bg-white border-b border-slate-200/60 relative">
-        <div className="max-w-5xl mx-auto px-6 space-y-12">
-          
-          <div className="text-center max-w-2xl mx-auto space-y-3">
-            <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest block">
-              Cost & Alignment Calculator
-            </span>
-            <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-none">
-              Calculate Your Feedback Savings
-            </h2>
-            <p className="text-xs text-slate-500">
-              Vague emails and screen capturing chew up massive software budget. Slide the parameters to see your ROI.
-            </p>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center bg-slate-50 border border-slate-200/60 p-6 md:p-10 rounded-3xl shadow-sm">
-            
-            {/* Column 1: Sliders Inputs (7 cols) */}
-            <div className="md:col-span-7 space-y-6 text-left">
-              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider border-b border-slate-200 pb-2 mb-4 flex items-center gap-1.5">
-                <Tag className="w-4 h-4 text-indigo-600" />
-                Your Project Parameters
-              </h3>
-
-              {/* Sliders 1 */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="font-bold text-slate-700">Active Concurrent Projects</span>
-                  <span className="font-mono font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 py-0.5 px-2.5 rounded-full">
-                    {calcProjects} projects
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min={1}
-                  max={12}
-                  value={calcProjects}
-                  onChange={(e) => setCalcProjects(Number(e.target.value))}
-                  className="w-full accent-indigo-600 cursor-pointer h-1.5 bg-slate-200 rounded-lg"
-                />
-                <div className="flex justify-between text-[10px] text-slate-400 font-mono">
-                  <span>1 Project</span>
-                  <span>12 Projects</span>
-                </div>
-              </div>
-
-              {/* Sliders 2 */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="font-bold text-slate-700">Weekly Feedback Emails / Issues (per project)</span>
-                  <span className="font-mono font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 py-0.5 px-2.5 rounded-full">
-                    {calcEmails} back-and-forths
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min={5}
-                  max={45}
-                  value={calcEmails}
-                  onChange={(e) => setCalcEmails(Number(e.target.value))}
-                  className="w-full accent-indigo-600 cursor-pointer h-1.5 bg-slate-200 rounded-lg"
-                />
-                <div className="flex justify-between text-[10px] text-slate-400 font-mono">
-                  <span>5 Exchanges</span>
-                  <span>45 Exchanges</span>
-                </div>
-              </div>
-
-              {/* Sliders 3 */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="font-bold text-slate-700">Developer or Client Hourly Rate ($)</span>
-                  <span className="font-mono font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 py-0.5 px-2.5 rounded-full">
-                    ${calcHourlyRate} / hour
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min={25}
-                  max={150}
-                  value={calcHourlyRate}
-                  onChange={(e) => setCalcHourlyRate(Number(e.target.value))}
-                  className="w-full accent-indigo-600 cursor-pointer h-1.5 bg-slate-200 rounded-lg"
-                />
-                <div className="flex justify-between text-[10px] text-slate-400 font-mono">
-                  <span>$25/hr</span>
-                  <span>$150/hr</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Column 2: Computations ROI Dashboard Outputs (5 cols) */}
-            <div className="md:col-span-5 bg-indigo-900 text-white rounded-2xl p-6 border border-indigo-950 text-left space-y-4 shadow-lg shadow-indigo-950/10">
-              <span className="text-[9px] font-mono text-indigo-200 uppercase tracking-widest block">
-                Your Monthly Savings
-              </span>
-
-              {/* Computation logic block */}
-              {(() => {
-                // assume each email back and forth takes 15 minutes of dev/client time to read, formulate, reply, coordinate, adjust
-                const hoursWastedWeekly = (calcEmails * 15 / 60) * calcProjects;
-                const costWastedWeekly = hoursWastedWeekly * calcHourlyRate;
-                const monthlyLoss = costWastedWeekly * 4.3;
-
-                // DevFlw reduces visual revision times by 75%
-                const monthlySaved = monthlyLoss * 0.75;
-                const hoursSavedMonthly = hoursWastedWeekly * 4.3 * 0.75;
-
-                return (
-                  <div className="space-y-5">
-                    {/* Big output display */}
-                    <div className="space-y-1">
-                      <h4 className="text-xs text-indigo-200 leading-none">Total Cash Saved</h4>
-                      <div className="text-3xl md:text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-200 to-white">
-                        ${Math.round(monthlySaved).toLocaleString()} <span className="text-xs font-semibold text-indigo-200">/ mo</span>
-                      </div>
-                    </div>
-
-                    <div className="border-t border-indigo-800 pt-4 space-y-3">
-                      <div className="flex justify-between text-xs">
-                        <span className="text-indigo-200">Feedback Hours Saved</span>
-                        <span className="font-bold font-mono text-white">
-                          {Math.round(hoursSavedMonthly)} hrs / mo
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-xs">
-                        <span className="text-indigo-200">Email Back-and-forth Reduction</span>
-                        <span className="font-bold text-emerald-400">
-                          75% Less Noise
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-xs">
-                        <span className="text-indigo-200">Project Velocity Increase</span>
-                        <span className="font-bold text-amber-300">
-                          40% Faster Approvals
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="pt-2">
-                      <button
-                        onClick={() => onNavigateToAuth('signup')}
-                        className="w-full py-3 bg-white hover:bg-indigo-50 text-indigo-900 font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                      >
-                        Start Saving Time Today
-                        <ArrowRight className="w-3.5 h-3.5 text-indigo-900" />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-
-          </div>
-
-        </div>
-      </section>
 
       {/* Features Grid Section */}
       <section id="features" className="py-20 bg-white">
@@ -1521,101 +1408,151 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
         </div>
       </section>
 
-      {/* VISUAL WORKSPACE GALLERY SECTION */}
-      <section className="py-20 bg-gradient-to-b from-white to-slate-50 border-y border-slate-200/40">
+      {/* VISUAL WORKSPACE GALLERY SECTION WITH CAROUSEL SLIDER */}
+      <section className="py-20 bg-gradient-to-b from-white to-slate-50 border-y border-slate-200/40 relative">
         <div className="max-w-7xl mx-auto px-6 space-y-12">
-          <div className="text-center max-w-2xl mx-auto space-y-3">
-            <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest block">Product Visuals</span>
-            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Experience the DevFlw Workspace</h2>
-            <p className="text-xs text-slate-500">Take a visual tour through our seamless, modern design feedback workflow designed to make co-creation effortless.</p>
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+            <div className="text-left max-w-2xl space-y-3">
+              <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest block">Product Visuals</span>
+              <h2 className="text-3xl font-black text-slate-900 tracking-tight">Experience the DevFlw Workspace</h2>
+              <p className="text-xs text-slate-500">Take a visual tour through our seamless, modern design feedback workflow designed to make co-creation effortless.</p>
+            </div>
+            {/* Slider Buttons */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => scrollVisuals('left')}
+                className="p-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-all cursor-pointer hover:border-slate-300 shadow-sm"
+                aria-label="Previous Slide"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => scrollVisuals('right')}
+                className="p-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-all cursor-pointer hover:border-slate-300 shadow-sm"
+                aria-label="Next Slide"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            
-            {/* Gallery Card 1 */}
-            <div className="bg-white rounded-2xl overflow-hidden border border-slate-200/60 shadow-sm group hover:shadow-md transition-all flex flex-col h-full">
-              <div className="relative overflow-hidden h-44 bg-slate-100">
-                <img 
-                  src="https://images.unsplash.com/photo-1605379399642-870262d3d051?auto=format&fit=crop&w=600&q=80" 
-                  alt="Code Staging Server Setup" 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute top-3 left-3 bg-indigo-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                  Staging Deploy
+          <div className="relative">
+            {/* Carousel track */}
+            <div 
+              ref={visualScrollRef}
+              onScroll={handleVisualScroll}
+              className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar gap-6 pb-6"
+            >
+              
+              {/* Gallery Card 1 */}
+              <div className="bg-white rounded-2xl overflow-hidden border border-slate-200/60 shadow-sm group hover:shadow-md transition-all flex flex-col h-full w-[290px] sm:w-[320px] md:w-[350px] flex-shrink-0 snap-start">
+                <div className="relative overflow-hidden h-48 bg-slate-100">
+                  <img 
+                    src="https://images.unsplash.com/photo-1605379399642-870262d3d051?auto=format&fit=crop&w=600&q=80" 
+                    alt="Code Staging Server Setup" 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute top-3 left-3 bg-indigo-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                    Staging Deploy
+                  </div>
+                </div>
+                <div className="p-5 flex-1 flex flex-col justify-between text-left">
+                  <div className="space-y-1.5">
+                    <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">Code Staging Preview</h3>
+                    <p className="text-[11px] text-slate-500 leading-relaxed">Deploy live, responsive staging environments. Link your server address in 5 seconds to sync code instantly.</p>
+                  </div>
                 </div>
               </div>
-              <div className="p-5 flex-1 flex flex-col justify-between text-left">
-                <div className="space-y-1.5">
-                  <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">Code Staging Preview</h3>
-                  <p className="text-[11px] text-slate-500 leading-relaxed">Deploy live, responsive staging environments. Link your server address in 5 seconds to sync code instantly.</p>
+
+              {/* Gallery Card 2 */}
+              <div className="bg-white rounded-2xl overflow-hidden border border-slate-200/60 shadow-sm group hover:shadow-md transition-all flex flex-col h-full w-[290px] sm:w-[320px] md:w-[350px] flex-shrink-0 snap-start">
+                <div className="relative overflow-hidden h-48 bg-slate-100">
+                  <img 
+                    src="https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=600&q=80" 
+                    alt="Figma comments style annotation" 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute top-3 left-3 bg-violet-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                    Visual Comments
+                  </div>
+                </div>
+                <div className="p-5 flex-1 flex flex-col justify-between text-left">
+                  <div className="space-y-1.5">
+                    <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">Figma-Style Pins</h3>
+                    <p className="text-[11px] text-slate-500 leading-relaxed">Clients click directly on any element in the live viewport to log pinpoint comments with absolute pixel coordinates.</p>
+                  </div>
                 </div>
               </div>
+
+              {/* Gallery Card 3 */}
+              <div className="bg-white rounded-2xl overflow-hidden border border-slate-200/60 shadow-sm group hover:shadow-md transition-all flex flex-col h-full w-[290px] sm:w-[320px] md:w-[350px] flex-shrink-0 snap-start">
+                <div className="relative overflow-hidden h-48 bg-slate-100">
+                  <img 
+                    src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=600&q=80" 
+                    alt="Agile Progress Kanban Board" 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute top-3 left-3 bg-rose-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                    Agile Board
+                  </div>
+                </div>
+                <div className="p-5 flex-1 flex flex-col justify-between text-left">
+                  <div className="space-y-1.5">
+                    <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">Feedback Milestones</h3>
+                    <p className="text-[11px] text-slate-500 leading-relaxed">Visual comments automatically turn into structured backlog tickets on your kanban sprint board for clear tracking.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Gallery Card 4 */}
+              <div className="bg-white rounded-2xl overflow-hidden border border-slate-200/60 shadow-sm group hover:shadow-md transition-all flex flex-col h-full w-[290px] sm:w-[320px] md:w-[350px] flex-shrink-0 snap-start">
+                <div className="relative overflow-hidden h-48 bg-slate-100">
+                  <img 
+                    src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=600&q=80" 
+                    alt="Direct Slack-Style Workspace Chat" 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute top-3 left-3 bg-emerald-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                    Alignment Chat
+                  </div>
+                </div>
+                <div className="p-5 flex-1 flex flex-col justify-between text-left">
+                  <div className="space-y-1.5">
+                    <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">Direct Context Chats</h3>
+                    <p className="text-[11px] text-slate-500 leading-relaxed">Discuss reviews, explain choices, and notify players directly through secure dedicated chat threads.</p>
+                  </div>
+                </div>
+              </div>
+
             </div>
 
-            {/* Gallery Card 2 */}
-            <div className="bg-white rounded-2xl overflow-hidden border border-slate-200/60 shadow-sm group hover:shadow-md transition-all flex flex-col h-full">
-              <div className="relative overflow-hidden h-44 bg-slate-100">
-                <img 
-                  src="https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=600&q=80" 
-                  alt="Figma comments style annotation" 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  referrerPolicy="no-referrer"
+            {/* Slider Dots indicators */}
+            <div className="flex justify-center items-center gap-2 mt-4">
+              {[0, 1, 2, 3].map((idx) => (
+                <button
+                  key={idx}
+                  onClick={() => {
+                    if (visualScrollRef.current) {
+                      const { scrollWidth, clientWidth } = visualScrollRef.current;
+                      const maxScroll = scrollWidth - clientWidth;
+                      visualScrollRef.current.scrollTo({
+                        left: (maxScroll / 3) * idx,
+                        behavior: 'smooth'
+                      });
+                      setVisualScrollIndex(idx);
+                    }
+                  }}
+                  className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${
+                    visualScrollIndex === idx ? 'w-8 bg-indigo-600' : 'w-2.5 bg-slate-200 hover:bg-slate-300'
+                  }`}
+                  aria-label={`Go to slide ${idx + 1}`}
                 />
-                <div className="absolute top-3 left-3 bg-violet-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                  Visual Comments
-                </div>
-              </div>
-              <div className="p-5 flex-1 flex flex-col justify-between text-left">
-                <div className="space-y-1.5">
-                  <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">Figma-Style Pins</h3>
-                  <p className="text-[11px] text-slate-500 leading-relaxed">Clients click directly on any element in the live viewport to log pinpoint comments with absolute pixel coordinates.</p>
-                </div>
-              </div>
+              ))}
             </div>
-
-            {/* Gallery Card 3 */}
-            <div className="bg-white rounded-2xl overflow-hidden border border-slate-200/60 shadow-sm group hover:shadow-md transition-all flex flex-col h-full">
-              <div className="relative overflow-hidden h-44 bg-slate-100">
-                <img 
-                  src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=600&q=80" 
-                  alt="Agile Progress Kanban Board" 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute top-3 left-3 bg-rose-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                  Agile Board
-                </div>
-              </div>
-              <div className="p-5 flex-1 flex flex-col justify-between text-left">
-                <div className="space-y-1.5">
-                  <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">Feedback Milestones</h3>
-                  <p className="text-[11px] text-slate-500 leading-relaxed">Visual comments automatically turn into structured backlog tickets on your kanban sprint board for clear tracking.</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Gallery Card 4 */}
-            <div className="bg-white rounded-2xl overflow-hidden border border-slate-200/60 shadow-sm group hover:shadow-md transition-all flex flex-col h-full">
-              <div className="relative overflow-hidden h-44 bg-slate-100">
-                <img 
-                  src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=600&q=80" 
-                  alt="Direct Slack-Style Workspace Chat" 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute top-3 left-3 bg-emerald-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                  Alignment Chat
-                </div>
-              </div>
-              <div className="p-5 flex-1 flex flex-col justify-between text-left">
-                <div className="space-y-1.5">
-                  <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">Direct Context Chats</h3>
-                  <p className="text-[11px] text-slate-500 leading-relaxed">Discuss reviews, explain choices, and notify players directly through secure dedicated chat threads.</p>
-                </div>
-              </div>
-            </div>
-
           </div>
         </div>
       </section>

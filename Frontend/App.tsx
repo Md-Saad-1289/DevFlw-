@@ -3,16 +3,31 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AuthPage } from './components/AuthPage';
 import { Dashboard } from './components/Dashboard';
 import { AdminDashboard } from '../Admin/components/AdminDashboard';
 import { LandingPage } from './components/LandingPage';
+import { ActivatePage } from './components/ActivatePage';
 
 function AppContent() {
   const { user, loading } = useAuth();
-  const [view, setView] = useState<'landing' | 'login' | 'signup'>('landing');
+  const [view, setView] = useState<'landing' | 'login' | 'signup' | 'activate'>('landing');
+  const [activationToken, setActivationToken] = useState<string | null>(null);
+  const [activationEmail, setActivationEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Check if there is an activation token and email in the URL on startup
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    const email = params.get('email');
+    if (token && email) {
+      setActivationToken(token);
+      setActivationEmail(email);
+      setView('activate');
+    }
+  }, []);
 
   if (loading) {
     return (
@@ -30,6 +45,23 @@ function AppContent() {
     return <Dashboard />;
   }
 
+  if (view === 'activate' && activationToken && activationEmail) {
+    return (
+      <ActivatePage
+        email={activationEmail}
+        token={activationToken}
+        onSuccess={() => {
+          // Clear URL search params after activation success so refreshing doesn't loop back
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }}
+        onGoToHome={() => {
+          window.history.replaceState({}, document.title, window.location.pathname);
+          setView('landing');
+        }}
+      />
+    );
+  }
+
   if (view === 'landing') {
     return (
       <LandingPage 
@@ -40,7 +72,7 @@ function AppContent() {
 
   return (
     <AuthPage 
-      initialMode={view} 
+      initialMode={view === 'activate' ? 'login' : view} 
       onBackToLanding={() => setView('landing')} 
     />
   );

@@ -355,4 +355,56 @@ router.put('/plans/:id', authenticateToken, async (req: any, res: any) => {
   }
 });
 
+// Activate a placeholder client user account via invitation link
+router.post('/activate-client', async (req: any, res: any) => {
+  const { email, token, name, password } = req.body;
+  if (!email || !token || !name || !password) {
+    return res.status(400).json({ error: 'All fields (email, token, name, and password) are required.' });
+  }
+
+  try {
+    const lowercaseEmail = email.toLowerCase().trim();
+    const user = await db.users.findOne({ email: lowercaseEmail });
+    if (!user) {
+      return res.status(404).json({ error: 'Activation failed. User account not found.' });
+    }
+
+    if (!user.activationToken || user.activationToken !== token) {
+      return res.status(400).json({ error: 'Invalid or expired activation link.' });
+    }
+
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // Update the user details
+    await db.users.updateOne(
+      { email: lowercaseEmail },
+      {
+        name: name.trim(),
+        password: hashedPassword,
+        activationToken: '', // Reset/clear the token so it cannot be reused
+        role: 'client'
+      }
+    );
+
+    const updatedUser = await db.users.findOne({ email: lowercaseEmail });
+    const jwtToken = jwt.sign({ id: updatedUser._id || updatedUser.id, role: 'client' }, JWT_SECRET, { expiresIn: '7d' });
+
+    return res.json({
+      token: jwtToken,
+      user: {
+        id: updatedUser._id || updatedUser.id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        role: 'client',
+        plan: updatedUser.plan || 'free',
+        createdAt: updatedUser.createdAt
+      }
+    });
+  } catch (err: any) {
+    console.error('Error during client activation:', err);
+    return res.status(500).json({ error: 'Server error during account activation.' });
+  }
+});
+
 export default router;

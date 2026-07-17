@@ -9,7 +9,9 @@ interface Plan {
   price: string;
   beforePrice?: string;
   maxProjects: number;
+  maxClients?: number;
   features: string[];
+  subNotes?: string[];
   isActive?: boolean;
 }
 
@@ -35,8 +37,11 @@ export const AdminPlans: React.FC<AdminPlansProps> = ({
   const [price, setPrice] = useState('');
   const [beforePrice, setBeforePrice] = useState('');
   const [maxProjects, setMaxProjects] = useState(2);
+  const [maxClients, setMaxClients] = useState(5);
   const [features, setFeatures] = useState<string[]>([]);
   const [newFeatureText, setNewFeatureText] = useState('');
+  const [subNotes, setSubNotes] = useState<string[]>([]);
+  const [newSubNoteText, setNewSubNoteText] = useState('');
   const [isActive, setIsActive] = useState(true);
 
   // Edit form states
@@ -45,8 +50,11 @@ export const AdminPlans: React.FC<AdminPlansProps> = ({
   const [editPrice, setEditPrice] = useState('');
   const [editBeforePrice, setEditBeforePrice] = useState('');
   const [editMaxProjects, setEditMaxProjects] = useState(2);
+  const [editMaxClients, setEditMaxClients] = useState(5);
   const [editFeatures, setEditFeatures] = useState<string[]>([]);
   const [editNewFeatureText, setEditNewFeatureText] = useState('');
+  const [editSubNotes, setEditSubNotes] = useState<string[]>([]);
+  const [editNewSubNoteText, setEditNewSubNoteText] = useState('');
   const [editIsActive, setEditIsActive] = useState(true);
 
   const [saving, setSaving] = useState(false);
@@ -58,8 +66,11 @@ export const AdminPlans: React.FC<AdminPlansProps> = ({
     setPrice('');
     setBeforePrice('');
     setMaxProjects(2);
+    setMaxClients(5);
     setFeatures([]);
     setNewFeatureText('');
+    setSubNotes([]);
+    setNewSubNoteText('');
     setIsActive(true);
     setErrorMsg(null);
   };
@@ -72,8 +83,11 @@ export const AdminPlans: React.FC<AdminPlansProps> = ({
     setEditPrice(plan.price);
     setEditBeforePrice(plan.beforePrice || '');
     setEditMaxProjects(plan.maxProjects || 2);
+    setEditMaxClients(plan.maxClients || 5);
     setEditFeatures(plan.features || []);
     setEditNewFeatureText('');
+    setEditSubNotes(plan.subNotes || []);
+    setEditNewSubNoteText('');
     setEditIsActive(plan.isActive !== false);
     setErrorMsg(null);
   };
@@ -98,6 +112,26 @@ export const AdminPlans: React.FC<AdminPlansProps> = ({
     }
   };
 
+  const handleAddSubNote = (isEdit: boolean) => {
+    if (isEdit) {
+      if (!editNewSubNoteText.trim()) return;
+      setEditSubNotes([...editSubNotes, editNewSubNoteText.trim()]);
+      setEditNewSubNoteText('');
+    } else {
+      if (!newSubNoteText.trim()) return;
+      setSubNotes([...subNotes, newSubNoteText.trim()]);
+      setNewSubNoteText('');
+    }
+  };
+
+  const handleRemoveSubNote = (isEdit: boolean, index: number) => {
+    if (isEdit) {
+      setEditSubNotes(editSubNotes.filter((_, i) => i !== index));
+    } else {
+      setSubNotes(subNotes.filter((_, i) => i !== index));
+    }
+  };
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
@@ -113,7 +147,9 @@ export const AdminPlans: React.FC<AdminPlansProps> = ({
       price: price.trim(),
       beforePrice: beforePrice.trim(),
       maxProjects: Number(maxProjects) || 2,
+      maxClients: Number(maxClients) || 5,
       features,
+      subNotes,
       isActive,
     });
     setSaving(true); // temporary state to trigger render reload
@@ -144,7 +180,9 @@ export const AdminPlans: React.FC<AdminPlansProps> = ({
       price: editPrice.trim(),
       beforePrice: editBeforePrice.trim(),
       maxProjects: Number(editMaxProjects) || 2,
+      maxClients: Number(editMaxClients) || 5,
       features: editFeatures,
+      subNotes: editSubNotes,
       isActive: editIsActive,
     });
     setSaving(false);
@@ -215,7 +253,7 @@ export const AdminPlans: React.FC<AdminPlansProps> = ({
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">Plan Name</label>
               <input
@@ -247,6 +285,18 @@ export const AdminPlans: React.FC<AdminPlansProps> = ({
                 value={maxProjects}
                 onChange={(e) => setMaxProjects(Number(e.target.value))}
                 className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-rose-700 uppercase tracking-wide mb-1">Max Client Limit / Proj</label>
+              <input
+                type="number"
+                min="1"
+                max="999"
+                value={maxClients}
+                onChange={(e) => setMaxClients(Number(e.target.value))}
+                className="w-full px-3 py-2 border border-rose-200 rounded-lg text-sm focus:ring-1 focus:ring-rose-500 focus:outline-none"
                 required
               />
             </div>
@@ -340,6 +390,55 @@ export const AdminPlans: React.FC<AdminPlansProps> = ({
             </div>
           </div>
 
+          <div className="border-t pt-4">
+            <label className="block text-xs font-bold text-emerald-700 uppercase tracking-wide mb-1 flex items-center gap-1">
+              <span>Sub Notes Included (Extra Badges/Warnings)</span>
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="e.g. Limit 10 clients maximum per project"
+                value={newSubNoteText}
+                onChange={(e) => setNewSubNoteText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddSubNote(false);
+                  }
+                }}
+                className="flex-1 px-3 py-2 border border-emerald-200 rounded-lg text-sm focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => handleAddSubNote(false)}
+                className="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 rounded-lg text-sm font-semibold transition-all cursor-pointer"
+              >
+                Add Note
+              </button>
+            </div>
+
+            <div className="flex flex-wrap gap-2 mt-2">
+              {subNotes.map((note, index) => (
+                <span
+                  key={index}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-800 border border-emerald-100 text-xs font-medium rounded-full"
+                >
+                  • {note}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveSubNote(false, index)}
+                    className="hover:text-emerald-900 rounded-full focus:outline-none"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+              {subNotes.length === 0 && (
+                <p className="text-xs text-gray-400 italic">No sub notes added yet. Add extra plan constraints above.</p>
+              )}
+            </div>
+          </div>
+
           <div className="flex justify-end gap-3 pt-2 border-t">
             <button
               type="button"
@@ -378,7 +477,7 @@ export const AdminPlans: React.FC<AdminPlansProps> = ({
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">Plan Name</label>
               <input
@@ -408,6 +507,18 @@ export const AdminPlans: React.FC<AdminPlansProps> = ({
                 value={editMaxProjects}
                 onChange={(e) => setEditMaxProjects(Number(e.target.value))}
                 className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-1 focus:ring-amber-500 focus:outline-none"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-rose-700 uppercase tracking-wide mb-1">Max Client Limit / Proj</label>
+              <input
+                type="number"
+                min="1"
+                max="999"
+                value={editMaxClients}
+                onChange={(e) => setEditMaxClients(Number(e.target.value))}
+                className="w-full px-3 py-2 border border-rose-200 rounded-lg text-sm focus:ring-1 focus:ring-rose-500 focus:outline-none"
                 required
               />
             </div>
@@ -497,6 +608,52 @@ export const AdminPlans: React.FC<AdminPlansProps> = ({
             </div>
           </div>
 
+          <div className="border-t pt-4">
+            <label className="block text-xs font-bold text-emerald-700 uppercase tracking-wide mb-1 flex items-center gap-1">
+              <span>Sub Notes Included (Extra Badges/Warnings)</span>
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder="Add another sub note"
+                value={editNewSubNoteText}
+                onChange={(e) => setEditNewSubNoteText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddSubNote(true);
+                  }
+                }}
+                className="flex-1 px-3 py-2 border border-emerald-200 rounded-lg text-sm focus:ring-1 focus:ring-amber-500 focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => handleAddSubNote(true)}
+                className="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 rounded-lg text-sm font-semibold transition-all cursor-pointer"
+              >
+                Add Note
+              </button>
+            </div>
+
+            <div className="flex flex-wrap gap-2 mt-2">
+              {editSubNotes.map((note, index) => (
+                <span
+                  key={index}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-800 border border-emerald-100 text-xs font-medium rounded-full"
+                >
+                  • {note}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveSubNote(true, index)}
+                    className="hover:text-emerald-900 rounded-full focus:outline-none"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          </div>
+
           <div className="flex justify-end gap-3 pt-2 border-t">
             <button
               type="button"
@@ -525,8 +682,8 @@ export const AdminPlans: React.FC<AdminPlansProps> = ({
                 <th className="py-3.5 px-4 font-bold">Plan Name</th>
                 <th className="py-3.5 px-4 font-bold">Plan Key (ID)</th>
                 <th className="py-3.5 px-4 font-bold">Price Details</th>
-                <th className="py-3.5 px-4 font-bold">Max Active Projects</th>
-                <th className="py-3.5 px-4 font-bold">Included Features</th>
+                <th className="py-3.5 px-4 font-bold">Max Projects / Clients</th>
+                <th className="py-3.5 px-4 font-bold">Features & Sub Notes</th>
                 <th className="py-3.5 px-4 font-bold">Visibility Status</th>
                 <th className="py-3.5 px-4 font-bold text-right">Actions</th>
               </tr>
@@ -565,18 +722,39 @@ export const AdminPlans: React.FC<AdminPlansProps> = ({
                         </span>
                       </div>
                     </td>
-                    <td className="py-4 px-4 text-gray-950 font-bold">
-                      {p.maxProjects} projects
+                    <td className="py-4 px-4">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="font-bold text-gray-900">{p.maxProjects} projects</span>
+                        <span className="text-[11px] text-rose-600 font-extrabold bg-rose-50 border border-rose-100 px-1.5 py-0.5 rounded w-max">
+                          Max {p.maxClients || 5} Clients/Proj
+                        </span>
+                      </div>
                     </td>
                     <td className="py-4 px-4 max-w-xs">
-                      <div className="flex flex-wrap gap-1.5">
-                        {p.features?.map((f, i) => (
-                          <span key={i} className="px-2 py-0.5 bg-gray-100 text-gray-700 text-[10px] font-medium rounded">
-                            {f}
-                          </span>
-                        ))}
-                        {(!p.features || p.features.length === 0) && (
-                          <span className="text-gray-400 text-xs italic">No features listed</span>
+                      <div className="space-y-1.5">
+                        <div className="flex flex-wrap gap-1.5">
+                          {p.features?.map((f, i) => (
+                            <span key={i} className="px-2 py-0.5 bg-gray-100 text-gray-700 text-[10px] font-medium rounded">
+                              {f}
+                            </span>
+                          ))}
+                          {(!p.features || p.features.length === 0) && (
+                            <span className="text-gray-400 text-xs italic">No features listed</span>
+                          )}
+                        </div>
+                        {p.subNotes && p.subNotes.length > 0 && (
+                          <div className="border-t border-gray-100 pt-1">
+                            <span className="text-[9px] text-slate-400 uppercase tracking-wider font-extrabold block mb-0.5">
+                              Sub Notes Included
+                            </span>
+                            <div className="flex flex-wrap gap-1">
+                              {p.subNotes.map((note, i) => (
+                                <span key={i} className="px-1.5 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-100 text-[9px] font-medium rounded">
+                                  • {note}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
                         )}
                       </div>
                     </td>

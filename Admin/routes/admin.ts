@@ -225,7 +225,7 @@ router.get('/plans', async (req: any, res: any) => {
 
 // Create a new pricing plan
 router.post('/plans', async (req: any, res: any) => {
-  const { name, key, price, beforePrice, maxProjects, features, isActive } = req.body;
+  const { name, key, price, beforePrice, maxProjects, maxClients, features, subNotes, isActive } = req.body;
   if (!name || !key || !price) {
     return res.status(400).json({ error: 'Name, key and price are required.' });
   }
@@ -243,7 +243,9 @@ router.post('/plans', async (req: any, res: any) => {
       price,
       beforePrice: beforePrice || '',
       maxProjects: Number(maxProjects) || 2,
+      maxClients: Number(maxClients) || 5,
       features: Array.isArray(features) ? features : [],
+      subNotes: Array.isArray(subNotes) ? subNotes : [],
       isActive: isActive !== undefined ? Boolean(isActive) : true
     });
 
@@ -257,7 +259,7 @@ router.post('/plans', async (req: any, res: any) => {
 // Update an existing pricing plan
 router.put('/plans/:id', async (req: any, res: any) => {
   const { id } = req.params;
-  const { name, key, price, beforePrice, maxProjects, features, isActive } = req.body;
+  const { name, key, price, beforePrice, maxProjects, maxClients, features, subNotes, isActive } = req.body;
 
   try {
     const plan = await db.plans.findById(id);
@@ -271,7 +273,9 @@ router.put('/plans/:id', async (req: any, res: any) => {
     if (price) updates.price = price;
     if (beforePrice !== undefined) updates.beforePrice = beforePrice;
     if (maxProjects !== undefined) updates.maxProjects = Number(maxProjects);
+    if (maxClients !== undefined) updates.maxClients = Number(maxClients);
     if (features) updates.features = Array.isArray(features) ? features : [];
+    if (subNotes) updates.subNotes = Array.isArray(subNotes) ? subNotes : [];
     if (isActive !== undefined) updates.isActive = Boolean(isActive);
 
     // If key is being changed, make sure it remains unique

@@ -494,13 +494,29 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ projects, onBackToWork
                         ))}
                       </ul>
                     )}
+
+                    {p.subNotes && p.subNotes.length > 0 && (
+                      <div className="mt-3 border-t border-slate-100 pt-2">
+                        <span className="text-[8px] font-extrabold text-emerald-600 uppercase tracking-wider block mb-1">
+                          Sub Notes & Rules
+                        </span>
+                        <ul className="space-y-1">
+                          {p.subNotes.map((note: string, i: number) => (
+                            <li key={i} className="text-[10px] text-emerald-700 font-medium bg-emerald-50/50 px-2 py-0.5 rounded border border-emerald-100/40 flex items-center gap-1">
+                              <span>•</span>
+                              <span>{note}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
 
                   <div className="mt-4 border-t border-dashed border-slate-200/60 pt-3 text-left">
                     <div className="flex justify-between items-center">
                       <div>
                         <span className="text-xs font-bold text-slate-950 block">{p.maxProjects} Active Workspaces</span>
-                        <span className="text-[10px] text-slate-400 block mt-0.5">Core taskboard & pin boards</span>
+                        <span className="text-[10px] text-rose-600 font-bold block mt-0.5">Max {p.maxClients || 5} Clients Limit / Proj</span>
                       </div>
                       <div className="text-right flex flex-col items-end">
                         {p.beforePrice && (

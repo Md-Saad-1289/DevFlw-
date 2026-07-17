@@ -18,6 +18,7 @@ interface AuthContextType {
   registerDeveloper: (name: string, email: string, password: string) => Promise<boolean>;
   registerClient: (name: string, email: string, password: string) => Promise<boolean>;
   registerAdmin: (name: string, email: string, password: string) => Promise<boolean>;
+  activateClient: (name: string, email: string, token: string, password: string) => Promise<boolean>;
   updatePlan: (plan: string) => Promise<boolean>;
   updateProfile: (name?: string, password?: string) => Promise<{ success: boolean; message?: string; error?: string }>;
   logout: () => void;
@@ -186,6 +187,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const activateClient = async (name: string, email: string, activationToken: string, password: string): Promise<boolean> => {
+    setError(null);
+    setLoading(true);
+    try {
+      const response = await fetch('/api/auth/activate-client', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, token: activationToken, password }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to activate client account');
+      }
+
+      localStorage.setItem('devflw_token', data.token);
+      localStorage.setItem('devflw_user', JSON.stringify(data.user));
+      setToken(data.token);
+      setUser(data.user);
+      return true;
+    } catch (err: any) {
+      setError(err.message || 'An error occurred during account activation');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const updatePlan = async (plan: string): Promise<boolean> => {
     setError(null);
     setLoading(true);
@@ -263,6 +291,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         registerDeveloper,
         registerClient,
         registerAdmin,
+        activateClient,
         updatePlan,
         updateProfile,
         logout,

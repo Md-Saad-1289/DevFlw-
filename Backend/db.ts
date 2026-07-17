@@ -87,6 +87,7 @@ const UserSchema = new mongoose.Schema({
   password: { type: String, required: true },
   role: { type: String, enum: ['developer', 'client', 'admin'], default: 'developer' },
   plan: { type: String, enum: ['free', 'pro'], default: 'free' },
+  activationToken: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -150,7 +151,9 @@ const PlanSchema = new mongoose.Schema({
   price: { type: String, required: true },
   beforePrice: { type: String, default: '' },
   maxProjects: { type: Number, required: true, default: 2 },
+  maxClients: { type: Number, required: true, default: 5 },
   features: { type: [String], default: [] },
+  subNotes: { type: [String], default: [] },
   discount: { type: String, default: '' },
   note: { type: String, default: '' },
   isActive: { type: Boolean, default: true },
@@ -173,7 +176,9 @@ export const defaultPlans = [
     price: '$0/month',
     beforePrice: '',
     maxProjects: 2,
+    maxClients: 2,
     features: ['Up to 2 projects', 'Standard task tracking', 'Basic feedback markers'],
+    subNotes: ['Basic branding only', 'Self-service community support'],
     discount: '',
     note: 'Great for getting started',
     isActive: true
@@ -184,7 +189,9 @@ export const defaultPlans = [
     price: '$29/month',
     beforePrice: '$39/month',
     maxProjects: 15,
+    maxClients: 10,
     features: ['Up to 15 projects', 'Unlimited tasks', 'Premium custom feedback', 'Developer chat support', 'Advanced status logs'],
+    subNotes: ['Invite up to 10 clients', 'White-labeled feedback overlays', 'Direct private chat channels', 'Priority response SLA'],
     discount: '10% OFF',
     note: 'Perfect for agencies',
     isActive: true
@@ -608,7 +615,9 @@ export const db = {
         price: data.price,
         beforePrice: data.beforePrice || '',
         maxProjects: Number(data.maxProjects) || 2,
+        maxClients: Number(data.maxClients) || 5,
         features: data.features || [],
+        subNotes: data.subNotes || [],
         discount: data.discount || '',
         note: data.note || '',
         isActive: data.isActive !== undefined ? data.isActive : true,
@@ -626,6 +635,9 @@ export const db = {
       if (index !== -1) {
         if (update.maxProjects !== undefined) {
           update.maxProjects = Number(update.maxProjects);
+        }
+        if (update.maxClients !== undefined) {
+          update.maxClients = Number(update.maxClients);
         }
         dbStore.plans[index] = { ...dbStore.plans[index], ...update };
         saveLocalDb(dbStore);

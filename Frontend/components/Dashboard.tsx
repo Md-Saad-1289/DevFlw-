@@ -81,6 +81,8 @@ export const Dashboard: React.FC = () => {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteMsg, setInviteMsg] = useState('');
+  const [lastActivationLink, setLastActivationLink] = useState('');
+  const [linkCopied, setLinkCopied] = useState(false);
 
   // Fetch initial list of projects
   const fetchProjects = async (selectFirst = false) => {
@@ -304,10 +306,17 @@ export const Dashboard: React.FC = () => {
 
     setInviteLoading(true);
     setInviteMsg('');
+    setLastActivationLink('');
+    setLinkCopied(false);
     const id = activeProject._id || activeProject.id;
     try {
-      await api.post(`/api/projects/${id}/invite`, { email: inviteEmail.trim() });
-      setInviteMsg('Client invited successfully and added to workspace!');
+      const res = await api.post(`/api/projects/${id}/invite`, { email: inviteEmail.trim() });
+      if (res.data.isNewClient && res.data.activationLink) {
+        setInviteMsg('Client invited successfully! Since they do not have a registered account yet, a temporary workspace client account has been created. Copy the unique activation link below and share it with your client so they can set their password and start working instantly!');
+        setLastActivationLink(res.data.activationLink);
+      } else {
+        setInviteMsg('Client invited successfully! Since they already have a registered DevFlw account, they can log in normally to access the workspace.');
+      }
       setInviteEmail('');
       await fetchProjects();
     } catch (err: any) {
@@ -784,6 +793,39 @@ export const Dashboard: React.FC = () => {
                           <p className={`text-xs font-semibold ${inviteMsg.includes('successfully') ? 'text-emerald-600' : 'text-rose-600'}`}>
                             {inviteMsg}
                           </p>
+                        )}
+
+                        {lastActivationLink && (
+                          <div className="mt-3 bg-emerald-50/70 border border-emerald-100 p-3.5 rounded-xl space-y-2.5">
+                            <div className="flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                              <span className="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider">
+                                Client Activation Link Generated
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-slate-500 leading-normal">
+                              Send this secure, direct access link to your client. They can click it to set their custom password and start co-design feedback loops instantly.
+                            </p>
+                            <div className="flex gap-2 items-center">
+                              <input
+                                type="text"
+                                readOnly
+                                value={lastActivationLink}
+                                className="flex-1 bg-white border border-emerald-200 rounded-lg py-1.5 px-2.5 text-xs text-slate-800 outline-none select-all"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(lastActivationLink);
+                                  setLinkCopied(true);
+                                  setTimeout(() => setLinkCopied(false), 2000);
+                                }}
+                                className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded-lg transition-colors cursor-pointer min-w-[80px]"
+                              >
+                                {linkCopied ? 'Copied!' : 'Copy Link'}
+                              </button>
+                            </div>
+                          </div>
                         )}
                       </form>
 
