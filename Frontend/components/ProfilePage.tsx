@@ -273,7 +273,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ projects, onBackToWork
               </div>
             </div>
 
-            {user?.role === 'developer' && (
+            {(user?.role === 'developer' || user?.role === 'admin') && (
               <div className="bg-gradient-to-r from-indigo-900/30 to-purple-900/20 p-4 rounded-xl border border-indigo-500/20 flex items-center justify-between gap-3 text-left">
                 <div>
                   <span className="text-[9px] font-extrabold text-indigo-300 uppercase tracking-widest block">Active Plan Tier</span>
@@ -396,7 +396,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ projects, onBackToWork
       </div>
 
       {/* Simulated Plans & Subscription Card */}
-      {user?.role === 'developer' && (
+      {(user?.role === 'developer' || user?.role === 'admin') && (
         <div id="developer-plans-management" className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm space-y-6 mt-2 relative">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>

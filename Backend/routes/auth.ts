@@ -287,10 +287,10 @@ router.put('/profile', authenticateToken, async (req: any, res: any) => {
   }
 });
 
-// Update or create plans (restricted to 'developer' role for collaboration control)
+// Update or create plans (restricted to 'developer' and 'admin' roles for collaboration control)
 router.post('/plans', authenticateToken, async (req: any, res: any) => {
-  if (req.user.role !== 'developer') {
-    return res.status(403).json({ error: 'Only developers can manage workspace subscription plans.' });
+  if (req.user.role !== 'developer' && req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Only developers and admins can manage workspace subscription plans.' });
   }
 
   const { name, key, price, maxProjects, features, discount, note } = req.body;
@@ -322,8 +322,8 @@ router.post('/plans', authenticateToken, async (req: any, res: any) => {
 });
 
 router.put('/plans/:id', authenticateToken, async (req: any, res: any) => {
-  if (req.user.role !== 'developer') {
-    return res.status(403).json({ error: 'Only developers can manage workspace subscription plans.' });
+  if (req.user.role !== 'developer' && req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Only developers and admins can manage workspace subscription plans.' });
   }
 
   const { id } = req.params;

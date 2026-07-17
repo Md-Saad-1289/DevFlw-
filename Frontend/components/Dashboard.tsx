@@ -439,7 +439,7 @@ export const Dashboard: React.FC = () => {
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Your Workspaces</span>
             <div className="flex items-center gap-2">
-              {user?.role === 'developer' && (
+              {(user?.role === 'developer' || user?.role === 'admin') && (
                 <button
                   id="sidebar-create-project-btn"
                   onClick={() => setShowCreateModal(true)}
@@ -468,12 +468,12 @@ export const Dashboard: React.FC = () => {
                 <div className="space-y-1">
                   <p className="text-xs font-semibold">No active workspaces</p>
                   <p className="text-[10px] text-slate-400 px-4 leading-normal">
-                    {user?.role === 'developer' 
+                    {(user?.role === 'developer' || user?.role === 'admin') 
                       ? 'Establish a collaboration project space to invite clients!' 
                       : 'Waiting to be added by your developer via email.'}
                   </p>
                 </div>
-                {user?.role === 'developer' && (
+                {(user?.role === 'developer' || user?.role === 'admin') && (
                   <button
                     id="sidebar-create-init-proj-btn"
                     onClick={() => setShowCreateModal(true)}
@@ -518,7 +518,7 @@ export const Dashboard: React.FC = () => {
           </div>
 
           {/* Developer Subscription Plan & Slots Usage */}
-          {user?.role === 'developer' && (() => {
+          {(user?.role === 'developer' || user?.role === 'admin') && (() => {
             const currentPlanObj = availablePlans.find(p => p.key === (user?.plan || 'free').toLowerCase());
             const maxSlots = currentPlanObj ? currentPlanObj.maxProjects : (user?.plan === 'pro' ? 15 : 2);
             const planName = currentPlanObj ? currentPlanObj.name : (user?.plan === 'pro' ? 'Pro Plan' : 'Free Plan');
@@ -817,13 +817,13 @@ export const Dashboard: React.FC = () => {
               <div className="space-y-2">
                 <h2 className="text-lg font-bold text-slate-900">Establish Collaborative Workspace</h2>
                 <p className="text-xs text-slate-500 leading-relaxed">
-                  {user?.role === 'developer' 
+                  {(user?.role === 'developer' || user?.role === 'admin') 
                     ? 'Start co-design loops with clients. Build a project space, link your build url, and collaborate in context.'
                     : 'We could not locate any active project workspaces invited to your email. Please contact your developer to add your email to their DevFlw dashboard!'}
                 </p>
               </div>
 
-              {user?.role === 'developer' && (
+              {(user?.role === 'developer' || user?.role === 'admin') && (
                 <button
                   id="empty-create-project-btn"
                   onClick={() => setShowCreateModal(true)}
