@@ -18,7 +18,7 @@ router.get('/project/:projectId', authenticateToken, async (req: any, res: any) 
 
 // Create feedback (with coordinates for contextual overlay)
 router.post('/', authenticateToken, async (req: any, res: any) => {
-  const { projectId, text, x, y, screenshotUrl, taskId } = req.body;
+  const { projectId, text, x, y, screenshotUrl, taskId, pagePath } = req.body;
   const { email, id: userId, role } = req.user;
 
   if (!projectId || !text) {
@@ -31,7 +31,7 @@ router.post('/', authenticateToken, async (req: any, res: any) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
-    const isDeveloper = role === 'developer' && project.developerId === userId;
+    const isDeveloper = role === 'developer' && String(project.developerId) === String(userId);
     const isClient = role === 'client' && project.clients.includes(email.toLowerCase());
     if (!isDeveloper && !isClient) {
       return res.status(403).json({ error: 'Access denied' });
@@ -45,6 +45,7 @@ router.post('/', authenticateToken, async (req: any, res: any) => {
       y: y !== undefined ? Number(y) : undefined,
       screenshotUrl: screenshotUrl || '',
       taskId: taskId || undefined,
+      pagePath: pagePath || '/',
       resolved: false
     });
 
@@ -65,10 +66,10 @@ router.post('/', authenticateToken, async (req: any, res: any) => {
   }
 });
 
-// Resolve feedback
+// Resolve or update status of feedback
 router.patch('/:id', authenticateToken, async (req: any, res: any) => {
   const { id } = req.params;
-  const { resolved } = req.body;
+  const { resolved, status } = req.body;
   const { id: userId, email, role } = req.user;
 
   try {
@@ -82,27 +83,54 @@ router.patch('/:id', authenticateToken, async (req: any, res: any) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
-    const isDeveloper = role === 'developer' && project.developerId === userId;
+    const isDeveloper = role === 'developer' && String(project.developerId) === String(userId);
     const isClient = role === 'client' && project.clients.includes(email.toLowerCase());
     if (!isDeveloper && !isClient) {
       return res.status(403).json({ error: 'Unauthorized to modify feedback status' });
     }
 
-    const updatedFeedback = await db.feedbacks.findByIdAndUpdate(id, { resolved: !!resolved });
+    let updateObj: any = {};
+    if (status !== undefined) {
+      const validStatuses = ['open', 'in_progress', 'resolved', 'rejected'];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({ error: `Invalid status. Must be one of ${validStatuses.join(', ')}` });
+      }
+      updateObj.status = status;
+      updateObj.resolved = (status === 'resolved');
+    } else if (resolved !== undefined) {
+      updateObj.resolved = !!resolved;
+      updateObj.status = resolved ? 'resolved' : 'open';
+    }
 
-    // Notify client if developer resolved their feedback
-    if (resolved && role === 'developer') {
+    const updatedFeedback = await db.feedbacks.findByIdAndUpdate(id, updateObj);
+
+    // Notify client if developer resolved or updated status
+    if (role === 'developer') {
       const client = await db.users.findOne({ email: feedback.reporterEmail.toLowerCase() });
       if (client) {
-        await db.notifications.create({
-          userId: client._id || client.id,
-          projectId: project._id || project.id,
-          text: `Your feedback on "${project.name}" has been marked as resolved by the developer.`
-        });
+        if (updateObj.resolved) {
+          await db.notifications.create({
+            userId: client._id || client.id,
+            projectId: project._id || project.id,
+            text: `Your feedback on "${project.name}" has been marked as resolved by the developer.`
+          });
+        } else if (updateObj.status === 'in_progress') {
+          await db.notifications.create({
+            userId: client._id || client.id,
+            projectId: project._id || project.id,
+            text: `The developer started working on your feedback for "${project.name}" (Status: In Progress).`
+          });
+        } else if (updateObj.status === 'rejected') {
+          await db.notifications.create({
+            userId: client._id || client.id,
+            projectId: project._id || project.id,
+            text: `Your feedback on "${project.name}" was marked as declined/rejected by the developer.`
+          });
+        }
       }
     }
 
-    return res.json({ feedback: updatedFeedback });
+    return res.json({ feedback: { ...feedback, ...updateObj } });
   } catch (err: any) {
     console.error('Error updating feedback:', err);
     return res.status(500).json({ error: 'Server error while updating feedback' });
@@ -125,7 +153,7 @@ router.delete('/:id', authenticateToken, async (req: any, res: any) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
-    if (role !== 'developer' || project.developerId !== userId) {
+    if (role !== 'developer' || String(project.developerId) !== String(userId)) {
       return res.status(403).json({ error: 'Only developers can delete feedback points' });
     }
 

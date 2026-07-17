@@ -4,7 +4,7 @@ import { motion } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
 import { 
   Folder, Plus, Users, Globe, LogOut, CheckCircle2, ListTodo, 
-  MessageSquare, Settings, Sparkles, LogIn, Code, User, ChevronRight, AlertCircle
+  MessageSquare, Settings, Sparkles, LogIn, Code, User, ChevronRight, AlertCircle, Menu, X
 } from 'lucide-react';
 import { Project, Task, Feedback, Message, Notification } from '../types';
 import { TaskBoard } from './TaskBoard';
@@ -12,6 +12,7 @@ import { FeedbackOverlay } from './FeedbackOverlay';
 import { ProjectChat } from './ProjectChat';
 import { NotificationCenter } from './NotificationCenter';
 import { ProjectLifecycleStepper } from './ProjectLifecycleStepper';
+import { ProfilePage } from './ProfilePage';
 
 // Configure axial base client with authorization header
 const api = axios.create();
@@ -64,7 +65,8 @@ export const Dashboard: React.FC = () => {
   const [projectsError, setProjectsError] = useState<string | null>(null);
 
   // Active Tab
-  const [activeTab, setActiveTab] = useState<'tasks' | 'feedback' | 'chat' | 'settings'>('tasks');
+  const [activeTab, setActiveTab] = useState<'tasks' | 'feedback' | 'chat' | 'settings' | 'profile'>('tasks');
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // New Project Form Modal
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -242,6 +244,12 @@ export const Dashboard: React.FC = () => {
     await fetchActiveProjectData();
   };
 
+  // Handle updating feedback status
+  const handleUpdateFeedbackStatus = async (id: string, status: 'open' | 'in_progress' | 'resolved' | 'rejected') => {
+    await api.patch(`/api/feedbacks/${id}`, { status });
+    await fetchActiveProjectData();
+  };
+
   // Handle deleting feedback
   const handleDeleteFeedback = async (id: string) => {
     await api.delete(`/api/feedbacks/${id}`);
@@ -342,17 +350,26 @@ export const Dashboard: React.FC = () => {
     <div id="portal-frame" className="min-h-screen bg-slate-50/50 flex flex-col font-sans text-slate-800">
       
       {/* Top Application Header Bar */}
-      <header className="bg-white border-b border-slate-100 px-6 py-4 flex justify-between items-center sticky top-0 z-30 shadow-sm">
+      <header className="bg-white border-b border-slate-100 px-4 sm:px-6 py-4 flex justify-between items-center sticky top-0 z-30 shadow-sm">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center shadow-md shadow-indigo-600/10">
+          {/* Mobile Workspaces Toggler Button */}
+          <button
+            onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+            className="p-1.5 hover:bg-slate-100 rounded-lg lg:hidden text-slate-500 hover:text-slate-800 transition-colors mr-1 cursor-pointer"
+            title="Toggle workspaces menu"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+
+          <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center shadow-md shadow-indigo-600/10 shrink-0">
             <Code className="w-5 h-5 text-white" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-base font-extrabold text-slate-900 tracking-tight">DevFlw</span>
-              <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full border border-slate-200/80 font-bold">Workspace v1.0</span>
+              <span className="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight">DevFlw</span>
+              <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full border border-slate-200/80 font-bold hidden xs:inline-block">Workspace v1.0</span>
             </div>
-            <p className="text-[10px] text-slate-400 font-medium">SaaS Developer-Client Context Collaboration</p>
+            <p className="text-[9px] sm:text-[10px] text-slate-400 font-medium hidden sm:block">SaaS Developer-Client Context Collaboration</p>
           </div>
         </div>
 
@@ -366,15 +383,27 @@ export const Dashboard: React.FC = () => {
           />
 
           {/* User profile identifier block */}
-          <div className="hidden sm:flex items-center gap-2.5 bg-slate-50 border border-slate-100 py-1.5 pl-3 pr-4 rounded-xl">
-            <div className="w-7 h-7 rounded-lg bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center">
+          <button
+            id="header-profile-btn"
+            onClick={() => {
+              setActiveTab('profile');
+              setMobileSidebarOpen(false);
+            }}
+            className={`hidden sm:flex items-center gap-2.5 bg-slate-50 border py-1.5 pl-3 pr-4 rounded-xl text-left transition-all cursor-pointer ${
+              activeTab === 'profile'
+                ? 'border-indigo-500 bg-indigo-50/50 text-indigo-700 ring-1 ring-indigo-500/20'
+                : 'border-slate-100 hover:border-indigo-100 hover:bg-slate-100/50'
+            }`}
+            title="View profile settings"
+          >
+            <div className="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
               <User className="w-4 h-4" />
             </div>
             <div className="text-left leading-none">
               <div className="text-xs font-bold text-slate-800">{user?.name}</div>
               <span className="text-[9px] font-extrabold text-indigo-600 uppercase tracking-wider">{user?.role}</span>
             </div>
-          </div>
+          </button>
 
           <button
             id="header-signout-btn"
@@ -388,23 +417,47 @@ export const Dashboard: React.FC = () => {
       </header>
 
       {/* Main Panel Frame: Dual-column workspace dashboard */}
-      <div className="flex-1 flex flex-col lg:flex-row items-stretch">
+      <div className="flex-1 flex flex-col lg:flex-row items-stretch relative">
         
+        {/* Mobile Sidebar Overlay Backdrop */}
+        {mobileSidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-35 lg:hidden transition-opacity"
+            onClick={() => setMobileSidebarOpen(false)}
+          />
+        )}
+
         {/* LEFT NAV BAR: Projects List & workspace switch */}
-        <aside id="projects-sidebar" className="w-full lg:w-72 bg-white border-b lg:border-b-0 lg:border-r border-slate-100 p-6 flex flex-col gap-6 flex-shrink-0">
+        <aside 
+          id="projects-sidebar" 
+          className={`
+            fixed lg:static inset-y-0 left-0 z-40 w-72 max-w-[85vw] sm:max-w-xs bg-white border-r border-slate-100 p-6 flex flex-col gap-6 flex-shrink-0 transition-transform duration-300 ease-in-out lg:translate-x-0 lg:shadow-none shadow-2xl h-screen lg:h-auto
+            ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          `}
+        >
           
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Your Workspaces</span>
-            {user?.role === 'developer' && (
+            <div className="flex items-center gap-2">
+              {user?.role === 'developer' && (
+                <button
+                  id="sidebar-create-project-btn"
+                  onClick={() => setShowCreateModal(true)}
+                  className="p-1 text-indigo-600 hover:bg-indigo-50 border border-indigo-100 rounded-md transition-all cursor-pointer"
+                  title="Establish New Workspace"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              )}
+              {/* Close button inside sidebar on mobile */}
               <button
-                id="sidebar-create-project-btn"
-                onClick={() => setShowCreateModal(true)}
-                className="p-1 text-indigo-600 hover:bg-indigo-50 border border-indigo-100 rounded-md transition-all cursor-pointer"
-                title="Establish New Workspace"
+                onClick={() => setMobileSidebarOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md lg:hidden transition-all cursor-pointer"
+                title="Close workspaces menu"
               >
-                <Plus className="w-4 h-4" />
+                <X className="w-4 h-4" />
               </button>
-            )}
+            </div>
           </div>
 
           {/* List of projects */}
@@ -440,6 +493,7 @@ export const Dashboard: React.FC = () => {
                     onClick={() => {
                       setActiveProject(p);
                       setActiveTab('tasks');
+                      setMobileSidebarOpen(false);
                     }}
                     className={`w-full text-left p-3 rounded-xl flex items-center justify-between group transition-all border cursor-pointer ${
                       isActive 
@@ -500,11 +554,7 @@ export const Dashboard: React.FC = () => {
                 <button
                   id="sidebar-upgrade-btn"
                   onClick={() => {
-                    if (activeProject) {
-                      setActiveTab('settings');
-                    } else {
-                      alert('Please select or create a project workspace to access Subscription settings tab.');
-                    }
+                    setActiveTab('profile');
                   }}
                   className="w-full text-center py-1.5 bg-white hover:bg-slate-50 text-indigo-600 text-[10px] font-extrabold rounded-lg border border-indigo-200 cursor-pointer shadow-xs transition-colors"
                 >
@@ -513,6 +563,31 @@ export const Dashboard: React.FC = () => {
               </div>
             );
           })()}
+
+          {/* Account Profile button for both Desktop & Mobile */}
+          <button
+            id="sidebar-profile-btn"
+            onClick={() => {
+              setActiveTab('profile');
+              setMobileSidebarOpen(false);
+            }}
+            className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer text-left ${
+              activeTab === 'profile'
+                ? 'bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-600/10'
+                : 'bg-white hover:bg-slate-50 border-slate-100 text-slate-700'
+            }`}
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <User className={`w-4 h-4 flex-shrink-0 ${activeTab === 'profile' ? 'text-white' : 'text-slate-400'}`} />
+              <div className="min-w-0">
+                <div className="text-xs font-bold truncate">My Account Profile</div>
+                <span className={`text-[8px] font-bold tracking-wider uppercase ${activeTab === 'profile' ? 'text-indigo-200' : 'text-slate-400'}`}>
+                  Manage Credentials
+                </span>
+              </div>
+            </div>
+            <ChevronRight className={`w-3.5 h-3.5 flex-shrink-0 transition-transform ${activeTab === 'profile' ? 'text-white translate-x-0.5' : 'text-slate-300'}`} />
+          </button>
 
           {/* Quick instructions panel */}
           <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl space-y-2 mt-auto">
@@ -528,7 +603,13 @@ export const Dashboard: React.FC = () => {
 
         {/* RIGHT MAIN PANEL: Active workspace details and interactive sub-modules */}
         <main id="main-workspace-portal" className="flex-1 p-6 md:p-8 space-y-6">
-          {activeProject ? (
+          {activeTab === 'profile' ? (
+            <ProfilePage
+              projects={projects}
+              onBackToWorkspaces={activeProject ? () => setActiveTab('tasks') : undefined}
+              availablePlans={availablePlans}
+            />
+          ) : activeProject ? (
             <>
               {/* Workspace Title, Metadata, and Sub-Tab Toggle */}
               <div className="bg-white p-6 rounded-2xl border border-slate-200/50 shadow-sm space-y-6">
@@ -651,6 +732,7 @@ export const Dashboard: React.FC = () => {
                     user={user!}
                     onAddFeedback={handleAddFeedback}
                     onResolveFeedback={handleResolveFeedback}
+                    onUpdateFeedbackStatus={handleUpdateFeedbackStatus}
                     onDeleteFeedback={handleDeleteFeedback}
                     onUpdateDemoUrl={handleUpdateDemoUrl}
                   />
@@ -721,169 +803,6 @@ export const Dashboard: React.FC = () => {
                         </div>
                       </div>
                     </div>
-
-                    {/* Simulated Plans & Subscription Card */}
-                    {user?.role === 'developer' && (
-                      <div className="bg-white p-6 rounded-2xl border border-slate-200/50 shadow-sm space-y-6">
-                        <div>
-                          <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-                            <Sparkles className="w-4 h-4 text-purple-600 animate-pulse" />
-                            Workspace Subscription Slots & Billing
-                          </h3>
-                          <p className="text-xs text-slate-500 mt-1">Monitor your collaboration workspace slots and manage simulated billing tiers.</p>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {availablePlans && availablePlans.length > 0 ? (
-                            availablePlans.map((p: any) => {
-                              const isActive = (user?.plan || 'free').toLowerCase() === p.key.toLowerCase();
-                              return (
-                                <div key={p.key} className={`p-5 rounded-xl border transition-all flex flex-col justify-between ${
-                                  isActive 
-                                    ? 'border-indigo-600 bg-indigo-50/10 ring-2 ring-indigo-600/10' 
-                                    : 'border-slate-100 bg-slate-50/40 opacity-80 hover:opacity-100'
-                                }`}>
-                                  <div>
-                                    <div className="flex justify-between items-start">
-                                      <div>
-                                        <span className="text-[9px] font-extrabold text-indigo-600 uppercase tracking-wider block">
-                                          {p.key === 'free' ? 'Basic Starter' : p.key === 'pro' ? 'Agency Scale' : 'Special Tier'}
-                                        </span>
-                                        <h4 className="text-sm font-bold text-slate-900 mt-0.5">{p.name}</h4>
-                                      </div>
-                                      {isActive && (
-                                        <span className="text-[9px] font-extrabold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-200">
-                                          ACTIVE PLAN
-                                        </span>
-                                      )}
-                                    </div>
-                                    <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">
-                                      {p.description || `Pricing option including up to ${p.maxProjects} project slots with direct collaborative client feedback loops.`}
-                                    </p>
-                                    {p.features && p.features.length > 0 && (
-                                      <ul className="mt-3 space-y-1">
-                                        {p.features.map((feat: string, i: number) => (
-                                          <li key={i} className="text-[10px] text-slate-500 flex items-center gap-1.5">
-                                            <span className="text-indigo-500 font-extrabold text-[8px]">✓</span>
-                                            <span>{feat}</span>
-                                          </li>
-                                        ))}
-                                      </ul>
-                                    )}
-                                  </div>
-                                  <div className="mt-4 border-t border-dashed border-slate-200/60 pt-3 flex justify-between items-center">
-                                    <div>
-                                      <span className="text-xs font-bold text-slate-950 block">{p.maxProjects} Active Workspaces</span>
-                                      <span className="text-[10px] text-slate-400 block mt-0.5">Core taskboard & pin boards</span>
-                                    </div>
-                                    <span className="text-xs font-extrabold text-slate-900">${p.price} <span className="text-[9px] font-normal text-slate-400">/ mo</span></span>
-                                  </div>
-                                </div>
-                              );
-                            })
-                          ) : (
-                            <>
-                              {/* Free Card */}
-                              <div className={`p-5 rounded-xl border transition-all ${
-                                user?.plan !== 'pro' 
-                                  ? 'border-indigo-600 bg-indigo-50/20 ring-2 ring-indigo-600/10' 
-                                  : 'border-slate-100 bg-slate-50/40 opacity-70'
-                              }`}>
-                                <div className="flex justify-between items-start">
-                                  <div>
-                                    <span className="text-[9px] font-extrabold text-indigo-600 uppercase tracking-wider">Basic Starter</span>
-                                    <h4 className="text-sm font-bold text-slate-900 mt-0.5">Free Plan</h4>
-                                  </div>
-                                  {user?.plan !== 'pro' && (
-                                    <span className="text-[9px] font-extrabold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full border border-indigo-200">
-                                      ACTIVE PLAN
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">
-                                  Perfect for independent freelancers testing single prototype builds.
-                                </p>
-                                <div className="mt-4 border-t border-dashed border-slate-200/60 pt-3 flex justify-between items-center">
-                                  <div>
-                                    <span className="text-xs font-bold text-slate-950 block">2 Active Workspaces</span>
-                                    <span className="text-[10px] text-slate-400 block mt-0.5">Core taskboard & pin boards</span>
-                                  </div>
-                                  <span className="text-xs font-extrabold text-slate-900">$0 <span className="text-[9px] font-normal text-slate-400">/ mo</span></span>
-                                </div>
-                              </div>
-
-                              {/* Pro Card */}
-                              <div className={`p-5 rounded-xl border transition-all ${
-                                user?.plan === 'pro' 
-                                  ? 'border-purple-600 bg-purple-50/20 ring-2 ring-purple-600/10' 
-                                  : 'border-slate-100 bg-slate-50/40 opacity-70 hover:opacity-100'
-                              }`}>
-                                <div className="flex justify-between items-start">
-                                  <div>
-                                    <span className="text-[9px] font-extrabold text-purple-600 uppercase tracking-wider">Agency Scale</span>
-                                    <h4 className="text-sm font-bold text-slate-900 mt-0.5">Pro Plan</h4>
-                                  </div>
-                                  {user?.plan === 'pro' && (
-                                    <span className="text-[9px] font-extrabold bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full border border-purple-200">
-                                      ACTIVE PLAN
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">
-                                  Run multiple parallel collaborative staging platforms for a full client list.
-                                </p>
-                                <div className="mt-4 border-t border-dashed border-slate-200/60 pt-3 flex justify-between items-center">
-                                  <div>
-                                    <span className="text-xs font-bold text-slate-950 block">15 Active Workspaces</span>
-                                    <span className="text-[10px] text-slate-400 block mt-0.5">High slot limits & priority syncing</span>
-                                  </div>
-                                  <span className="text-xs font-extrabold text-slate-900">$15 <span className="text-[9px] font-normal text-slate-400">/ mo</span></span>
-                                </div>
-                              </div>
-                            </>
-                          )}
-                        </div>
-
-                        {/* Toggler button for simulated payment flow */}
-                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
-                          <div className="text-left">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Local Billing Simulator</span>
-                            <span className="text-xs text-slate-600 font-medium">
-                              {user?.plan === 'pro' 
-                                ? 'You have access to 15 project workspace slots.' 
-                                : `Instantly upgrade your account to configure slot allocation settings.`}
-                            </span>
-                          </div>
-                          
-                          <div className="flex flex-wrap gap-2">
-                            {(availablePlans && availablePlans.length > 0 
-                              ? availablePlans 
-                              : [{key: 'free', name: 'Free'}, {key: 'pro', name: 'Pro'}]
-                            ).map((p: any) => {
-                              const isActive = (user?.plan || 'free').toLowerCase() === p.key.toLowerCase();
-                              return (
-                                <button
-                                  key={p.key}
-                                  type="button"
-                                  onClick={async () => {
-                                    if (isActive) return;
-                                    await updatePlan(p.key.toLowerCase());
-                                  }}
-                                  disabled={isActive}
-                                  className={`py-1.5 px-3 rounded-lg text-[10px] font-bold shadow-sm transition-all cursor-pointer whitespace-nowrap ${
-                                    isActive
-                                      ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
-                                      : 'bg-indigo-600 hover:bg-indigo-700 text-white'
-                                  }`}
-                                >
-                                  {isActive ? `Active ${p.name}` : `Upgrade to ${p.name}`}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
               </div>

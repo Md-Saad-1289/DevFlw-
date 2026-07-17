@@ -19,6 +19,7 @@ interface AuthContextType {
   registerClient: (name: string, email: string, password: string) => Promise<boolean>;
   registerAdmin: (name: string, email: string, password: string) => Promise<boolean>;
   updatePlan: (plan: string) => Promise<boolean>;
+  updateProfile: (name?: string, password?: string) => Promise<{ success: boolean; message?: string; error?: string }>;
   logout: () => void;
   clearError: () => void;
 }
@@ -214,6 +215,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateProfile = async (name?: string, password?: string): Promise<{ success: boolean; message?: string; error?: string }> => {
+    setError(null);
+    try {
+      const response = await fetch('/api/auth/profile', {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ name, password }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update profile');
+      }
+
+      const updatedUser = { ...user, ...data.user } as User;
+      localStorage.setItem('devflw_user', JSON.stringify(updatedUser));
+      setUser(updatedUser);
+      return { success: true, message: data.message };
+    } catch (err: any) {
+      const errMsg = err.message || 'An error occurred during profile update';
+      setError(errMsg);
+      return { success: false, error: errMsg };
+    }
+  };
+
   const logout = () => {
     localStorage.removeItem('devflw_token');
     localStorage.removeItem('devflw_user');
@@ -236,6 +264,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         registerClient,
         registerAdmin,
         updatePlan,
+        updateProfile,
         logout,
         clearError,
       }}

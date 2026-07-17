@@ -395,7 +395,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
                     className={`bg-slate-900 rounded-lg p-5 border border-slate-800 select-none relative transition-all duration-300 ${
                       demoDeviceMode === 'mobile' ? 'w-full max-w-[280px]' : demoDeviceMode === 'tablet' ? 'w-full max-w-[420px]' : 'w-full'
                     }`}
-                    style={{ minHeight: '260px' }}
+                    style={{ 
+                      minHeight: '260px',
+                      backgroundImage: "linear-gradient(rgba(15, 23, 42, 0.93), rgba(15, 23, 42, 0.95)), url('https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?auto=format&fit=crop&w=800&q=80')",
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'top center'
+                    }}
                   >
                     {/* Mock Website Preview Design */}
                     <div className="space-y-4">
@@ -691,6 +696,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
                       className={`bg-slate-950 rounded-2xl p-8 border border-slate-800 select-none relative transition-all duration-300 flex flex-col justify-between ${
                         demoDeviceMode === 'mobile' ? 'w-full max-w-[340px] h-[520px]' : demoDeviceMode === 'tablet' ? 'w-full max-w-[580px] h-[520px]' : 'w-full h-[520px]'
                       }`}
+                      style={{ 
+                        backgroundImage: "linear-gradient(rgba(15, 23, 42, 0.93), rgba(15, 23, 42, 0.95)), url('https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?auto=format&fit=crop&w=800&q=80')",
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'top center'
+                      }}
                     >
                       {/* Nav */}
                       <div className="flex items-center justify-between border-b border-slate-800 pb-3">
@@ -1511,6 +1521,105 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
         </div>
       </section>
 
+      {/* VISUAL WORKSPACE GALLERY SECTION */}
+      <section className="py-20 bg-gradient-to-b from-white to-slate-50 border-y border-slate-200/40">
+        <div className="max-w-7xl mx-auto px-6 space-y-12">
+          <div className="text-center max-w-2xl mx-auto space-y-3">
+            <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest block">Product Visuals</span>
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Experience the DevFlw Workspace</h2>
+            <p className="text-xs text-slate-500">Take a visual tour through our seamless, modern design feedback workflow designed to make co-creation effortless.</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            
+            {/* Gallery Card 1 */}
+            <div className="bg-white rounded-2xl overflow-hidden border border-slate-200/60 shadow-sm group hover:shadow-md transition-all flex flex-col h-full">
+              <div className="relative overflow-hidden h-44 bg-slate-100">
+                <img 
+                  src="https://images.unsplash.com/photo-1605379399642-870262d3d051?auto=format&fit=crop&w=600&q=80" 
+                  alt="Code Staging Server Setup" 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute top-3 left-3 bg-indigo-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                  Staging Deploy
+                </div>
+              </div>
+              <div className="p-5 flex-1 flex flex-col justify-between text-left">
+                <div className="space-y-1.5">
+                  <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">Code Staging Preview</h3>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">Deploy live, responsive staging environments. Link your server address in 5 seconds to sync code instantly.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Gallery Card 2 */}
+            <div className="bg-white rounded-2xl overflow-hidden border border-slate-200/60 shadow-sm group hover:shadow-md transition-all flex flex-col h-full">
+              <div className="relative overflow-hidden h-44 bg-slate-100">
+                <img 
+                  src="https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=600&q=80" 
+                  alt="Figma comments style annotation" 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute top-3 left-3 bg-violet-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                  Visual Comments
+                </div>
+              </div>
+              <div className="p-5 flex-1 flex flex-col justify-between text-left">
+                <div className="space-y-1.5">
+                  <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">Figma-Style Pins</h3>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">Clients click directly on any element in the live viewport to log pinpoint comments with absolute pixel coordinates.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Gallery Card 3 */}
+            <div className="bg-white rounded-2xl overflow-hidden border border-slate-200/60 shadow-sm group hover:shadow-md transition-all flex flex-col h-full">
+              <div className="relative overflow-hidden h-44 bg-slate-100">
+                <img 
+                  src="https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=600&q=80" 
+                  alt="Agile Progress Kanban Board" 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute top-3 left-3 bg-rose-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                  Agile Board
+                </div>
+              </div>
+              <div className="p-5 flex-1 flex flex-col justify-between text-left">
+                <div className="space-y-1.5">
+                  <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">Feedback Milestones</h3>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">Visual comments automatically turn into structured backlog tickets on your kanban sprint board for clear tracking.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Gallery Card 4 */}
+            <div className="bg-white rounded-2xl overflow-hidden border border-slate-200/60 shadow-sm group hover:shadow-md transition-all flex flex-col h-full">
+              <div className="relative overflow-hidden h-44 bg-slate-100">
+                <img 
+                  src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=600&q=80" 
+                  alt="Direct Slack-Style Workspace Chat" 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute top-3 left-3 bg-emerald-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                  Alignment Chat
+                </div>
+              </div>
+              <div className="p-5 flex-1 flex flex-col justify-between text-left">
+                <div className="space-y-1.5">
+                  <h3 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">Direct Context Chats</h3>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">Discuss reviews, explain choices, and notify players directly through secure dedicated chat threads.</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
 
       {/* Solutions Segment / Tabs */}
       <section id="solutions" className="py-20 bg-slate-50">
@@ -1573,21 +1682,37 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
                     ))}
                   </ul>
                 </div>
-                <div className="bg-slate-50 p-6 rounded-xl border border-slate-200/50 space-y-4">
-                  <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-                    <span className="text-[10px] font-mono text-slate-400 flex items-center gap-1">
-                      <Server className="w-3.5 h-3.5 text-indigo-500" />
-                      Live Link Configurations
-                    </span>
-                    <span className="text-[9px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full font-bold">Staging Active</span>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase">Linked Demo Address</label>
-                    <div className="bg-white border border-slate-200 rounded-lg py-2 px-3 text-xs font-mono text-slate-700 truncate shadow-inner">
-                      https://devflw-demo-staging.web.app
+                <div className="space-y-4">
+                  <div className="relative group overflow-hidden rounded-xl border border-slate-200">
+                    <img 
+                      src="https://images.unsplash.com/photo-1605379399642-870262d3d051?auto=format&fit=crop&w=600&q=80" 
+                      alt="Developer workspace" 
+                      className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-500"
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 to-transparent flex flex-col justify-end p-4">
+                      <span className="text-[10px] text-indigo-300 font-mono flex items-center gap-1.5 uppercase font-bold">
+                        <Server className="w-3.5 h-3.5 text-indigo-400" />
+                        Real-Time Developer Sandbox Sync
+                      </span>
                     </div>
                   </div>
-                  <p className="text-[10px] text-slate-400">Update this address at any stage during the project to sync new code features instantly for review.</p>
+
+                  <div className="bg-slate-50 p-5 rounded-xl border border-slate-200/50 space-y-3">
+                    <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                      <span className="text-[9px] font-mono text-slate-400 flex items-center gap-1 uppercase font-bold">
+                        Live Link Configuration
+                      </span>
+                      <span className="text-[8px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full font-bold">Staging Active</span>
+                    </div>
+                    <div className="space-y-1 text-left">
+                      <label className="block text-[9px] font-bold text-slate-400 uppercase">Linked Demo Address</label>
+                      <div className="bg-white border border-slate-200 rounded-lg py-1.5 px-3 text-xs font-mono text-slate-700 truncate shadow-inner">
+                        https://devflw-demo-staging.web.app
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-400 text-left">Update this address at any stage during the project to sync new code features instantly for review.</p>
+                  </div>
                 </div>
               </>
             ) : (
@@ -1613,17 +1738,34 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
                     ))}
                   </ul>
                 </div>
-                <div className="bg-rose-50/20 p-6 rounded-xl border border-rose-100/50 space-y-4 relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-rose-200/10 rounded-full blur-xl" />
-                  <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-100 uppercase tracking-wider inline-block">
-                    Pinpoint Review Example
-                  </span>
-                  <p className="text-xs font-medium text-slate-700 leading-normal">
-                    "This payment form needs a more expressive loading spinner or visual checkout success checkmark."
-                  </p>
-                  <div className="flex items-center justify-between text-[10px] text-slate-400 pt-2 border-t border-rose-100/30">
-                    <span>X: 62% Y: 48% (Near Form Button)</span>
-                    <span className="text-rose-500 font-bold">Unresolved Pin</span>
+                <div className="space-y-4">
+                  <div className="relative group overflow-hidden rounded-xl border border-slate-200">
+                    <img 
+                      src="https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=600&q=80" 
+                      alt="Client collaboration workspace" 
+                      className="w-full h-40 object-cover group-hover:scale-105 transition-transform duration-500"
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 to-transparent flex flex-col justify-end p-4">
+                      <span className="text-[10px] text-rose-300 font-mono flex items-center gap-1.5 uppercase font-bold">
+                        <Layers className="w-3.5 h-3.5 text-rose-400" />
+                        Interactive Comment Pins
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="bg-rose-50/25 p-5 rounded-xl border border-rose-100/50 space-y-3 relative overflow-hidden text-left">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-rose-200/10 rounded-full blur-xl" />
+                    <span className="text-[9px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-100 uppercase tracking-wider inline-block">
+                      Pinpoint Review Example
+                    </span>
+                    <p className="text-xs font-medium text-slate-700 leading-normal">
+                      "This payment form needs a more expressive loading spinner or visual checkout success checkmark."
+                    </p>
+                    <div className="flex justify-between items-center text-[9px] text-slate-400 pt-1.5 border-t border-rose-100/30">
+                      <span>X: 62% Y: 48% (Near Button)</span>
+                      <span className="text-rose-500 font-bold uppercase tracking-wider text-[8px]">Unresolved Pin</span>
+                    </div>
                   </div>
                 </div>
               </>
@@ -1651,8 +1793,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateToAuth }) =>
               </div>
 
               <div className="flex justify-center">
-                <div className="w-24 h-24 rounded-2xl bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-inner">
-                  <Shield className="w-10 h-10" />
+                <div className="relative w-full max-w-[200px] h-32 rounded-2xl overflow-hidden border border-slate-700 shadow-lg">
+                  <img 
+                    src="https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=600&q=80" 
+                    alt="Secure data cloud" 
+                    className="w-full h-full object-cover opacity-80"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute inset-0 bg-indigo-900/30 flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-xl bg-slate-900/90 border border-slate-700 flex items-center justify-center text-indigo-400 shadow-xl">
+                      <Shield className="w-6 h-6" />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

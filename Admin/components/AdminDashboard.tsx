@@ -221,9 +221,9 @@ export const AdminDashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
       {/* Top Admin Header Bar */}
-      <header className="bg-slate-900 border-b border-slate-800 text-white h-16 shrink-0 flex items-center justify-between px-6 shadow-sm">
+      <header className="bg-slate-900 border-b border-slate-800 text-white min-h-16 shrink-0 flex flex-col md:flex-row items-start md:items-center justify-between p-4 md:px-6 shadow-sm gap-4">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 bg-rose-600 rounded-lg shadow-sm">
+          <div className="p-2 bg-rose-600 rounded-lg shadow-sm shrink-0">
             <Shield className="w-4.5 h-4.5 text-white" />
           </div>
           <div>
@@ -234,7 +234,7 @@ export const AdminDashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-between md:justify-end">
           <button
             onClick={handleBackToWorkspace}
             className="flex items-center gap-2 px-3.5 py-1.5 border border-slate-700 bg-slate-800 hover:bg-slate-700 rounded-lg text-xs font-bold text-slate-300 transition-colors cursor-pointer"
@@ -243,10 +243,10 @@ export const AdminDashboard: React.FC = () => {
             Collaboration Portal
           </button>
           
-          <div className="h-6 w-[1px] bg-slate-800" />
+          <div className="h-6 w-[1px] bg-slate-800 hidden sm:block" />
 
           <div className="flex items-center gap-3">
-            <div className="text-right">
+            <div className="text-right leading-tight">
               <span className="block text-xs font-bold text-slate-200">{user?.name}</span>
               <span className="block text-[10px] text-rose-500 font-extrabold uppercase tracking-wide">
                 SYSTEM ADMIN
@@ -264,19 +264,19 @@ export const AdminDashboard: React.FC = () => {
       </header>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* Sidebar Nav */}
-        <aside className="w-64 bg-white border-r border-slate-200/80 shrink-0 p-5 flex flex-col justify-between">
-          <div className="space-y-6">
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block px-3">
+        <aside className="w-full lg:w-64 bg-white border-b lg:border-b-0 lg:border-r border-slate-200/80 shrink-0 p-4 lg:p-5 flex flex-row lg:flex-col justify-between items-center lg:items-stretch overflow-x-auto lg:overflow-x-visible gap-4 lg:gap-6">
+          <div className="space-y-0 lg:space-y-6 flex flex-row lg:flex-col items-center lg:items-stretch gap-3 lg:gap-0 w-full">
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest hidden lg:block px-3">
               Supervision Categories
             </span>
 
-            <nav className="space-y-1.5">
+            <nav className="flex flex-row lg:flex-col gap-1.5 overflow-x-auto pb-1 lg:pb-0 w-full">
               <button
                 id="admin-nav-stats"
                 onClick={() => setActiveTab('stats')}
-                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                className={`flex items-center gap-2 lg:gap-3 px-3 py-2 lg:px-3.5 lg:py-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
                   activeTab === 'stats'
                     ? 'bg-rose-50 text-rose-600 border border-rose-100/50 shadow-sm'
                     : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50 border border-transparent'
@@ -289,7 +289,7 @@ export const AdminDashboard: React.FC = () => {
               <button
                 id="admin-nav-users"
                 onClick={() => setActiveTab('users')}
-                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                className={`flex items-center gap-2 lg:gap-3 px-3 py-2 lg:px-3.5 lg:py-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
                   activeTab === 'users'
                     ? 'bg-rose-50 text-rose-600 border border-rose-100/50 shadow-sm'
                     : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50 border border-transparent'
@@ -302,7 +302,7 @@ export const AdminDashboard: React.FC = () => {
               <button
                 id="admin-nav-projects"
                 onClick={() => setActiveTab('projects')}
-                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                className={`flex items-center gap-2 lg:gap-3 px-3 py-2 lg:px-3.5 lg:py-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
                   activeTab === 'projects'
                     ? 'bg-rose-50 text-rose-600 border border-rose-100/50 shadow-sm'
                     : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50 border border-transparent'
@@ -315,7 +315,7 @@ export const AdminDashboard: React.FC = () => {
               <button
                 id="admin-nav-plans"
                 onClick={() => setActiveTab('plans')}
-                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                className={`flex items-center gap-2 lg:gap-3 px-3 py-2 lg:px-3.5 lg:py-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
                   activeTab === 'plans'
                     ? 'bg-rose-50 text-rose-600 border border-rose-100/50 shadow-sm'
                     : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50 border border-transparent'
@@ -328,19 +328,19 @@ export const AdminDashboard: React.FC = () => {
               <button
                 id="admin-nav-broadcast"
                 onClick={() => setActiveTab('notifications')}
-                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                className={`flex items-center gap-2 lg:gap-3 px-3 py-2 lg:px-3.5 lg:py-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
                   activeTab === 'notifications'
                     ? 'bg-rose-50 text-rose-600 border border-rose-100/50 shadow-sm'
                     : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50 border border-transparent'
                 }`}
               >
                 <Megaphone className="w-4 h-4" />
-                Global Announcement
+                Announcement
               </button>
             </nav>
           </div>
 
-          <div className="bg-slate-50 border border-slate-100 p-3.5 rounded-lg">
+          <div className="bg-slate-50 border border-slate-100 p-3.5 rounded-lg hidden lg:block shrink-0">
             <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wide">
               Mongoose Database
             </span>

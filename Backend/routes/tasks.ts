@@ -32,7 +32,7 @@ router.post('/', authenticateToken, async (req: any, res: any) => {
     }
 
     // Verify membership
-    const isDeveloper = role === 'developer' && project.developerId === userId;
+    const isDeveloper = role === 'developer' && String(project.developerId) === String(userId);
     const isClient = role === 'client' && project.clients.includes(email.toLowerCase());
     if (!isDeveloper && !isClient) {
       return res.status(403).json({ error: 'Unauthorized to add tasks' });
@@ -88,7 +88,7 @@ router.patch('/:id', authenticateToken, async (req: any, res: any) => {
     }
 
     // Verify membership
-    const isDeveloper = role === 'developer' && project.developerId === userId;
+    const isDeveloper = role === 'developer' && String(project.developerId) === String(userId);
     const isClient = role === 'client' && project.clients.includes(email.toLowerCase());
     if (!isDeveloper && !isClient) {
       return res.status(403).json({ error: 'Unauthorized to modify task' });
@@ -113,7 +113,7 @@ router.patch('/:id', authenticateToken, async (req: any, res: any) => {
       for (const mail of otherUserEmails) {
         if (!mail) continue;
         const recipient = await db.users.findOne({ email: mail.toLowerCase() });
-        if (recipient && recipient._id !== userId) {
+        if (recipient && String(recipient._id) !== String(userId)) {
           await db.notifications.create({
             userId: recipient._id || recipient.id,
             projectId: project._id || project.id,
@@ -146,7 +146,7 @@ router.delete('/:id', authenticateToken, async (req: any, res: any) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
-    const isDeveloper = role === 'developer' && project.developerId === userId;
+    const isDeveloper = role === 'developer' && String(project.developerId) === String(userId);
     if (!isDeveloper) {
       return res.status(403).json({ error: 'Only the project developer can delete tasks' });
     }

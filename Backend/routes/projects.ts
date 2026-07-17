@@ -115,7 +115,10 @@ router.get('/:id', authenticateToken, async (req: any, res: any) => {
     }
 
     // Authorization checks
-    if (role === 'developer' && project.developerId !== userId) {
+    const devUser = await db.users.findById(userId);
+    const isOwner = devUser && (String(project.developerId) === String(devUser._id) || String(project.developerId) === String(devUser.id));
+
+    if (role === 'developer' && !isOwner) {
       return res.status(403).json({ error: 'Access denied to this project' });
     }
 
@@ -153,7 +156,9 @@ router.patch('/:id', authenticateToken, async (req: any, res: any) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
-    const isDeveloper = role === 'developer' && project.developerId === userId;
+    const devUser = await db.users.findById(userId);
+    const isOwner = devUser && (String(project.developerId) === String(devUser._id) || String(project.developerId) === String(devUser.id));
+    const isDeveloper = role === 'developer' && isOwner;
     const clientsList = project.clients || [];
     const isClient = role === 'client' && clientsList.includes(email?.toLowerCase());
 
@@ -256,7 +261,10 @@ router.post('/:id/invite', authenticateToken, async (req: any, res: any) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
-    if (project.developerId !== userId) {
+    const devUser = await db.users.findById(userId);
+    const isOwner = devUser && (String(project.developerId) === String(devUser._id) || String(project.developerId) === String(devUser.id));
+
+    if (!isOwner) {
       return res.status(403).json({ error: 'Unauthorized to invite to this project' });
     }
 

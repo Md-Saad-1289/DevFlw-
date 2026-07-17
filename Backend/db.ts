@@ -113,13 +113,17 @@ const TaskSchema = new mongoose.Schema({
 const FeedbackSchema = new mongoose.Schema({
   projectId: { type: String, required: true },
   taskId: { type: String, default: '' },
-  clientEmail: { type: String, required: true },
+  clientEmail: { type: String, default: '' },
+  reporterEmail: { type: String, default: '' },
   text: { type: String, required: true },
   coordinateX: { type: Number, default: null }, // review mode click coordinate X (%)
   coordinateY: { type: Number, default: null }, // review mode click coordinate Y (%)
+  x: { type: Number, default: null },
+  y: { type: Number, default: null },
   viewportWidth: { type: Number, default: null },
   screenshotUrl: { type: String, default: '' },
-  status: { type: String, enum: ['open', 'resolved'], default: 'open' },
+  status: { type: String, enum: ['open', 'in_progress', 'resolved', 'rejected'], default: 'open' },
+  pagePath: { type: String, default: '/' },
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -146,6 +150,8 @@ const PlanSchema = new mongoose.Schema({
   price: { type: String, required: true },
   maxProjects: { type: Number, required: true, default: 2 },
   features: { type: [String], default: [] },
+  discount: { type: String, default: '' },
+  note: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -164,14 +170,18 @@ export const defaultPlans = [
     key: 'free',
     price: '$0/month',
     maxProjects: 2,
-    features: ['Up to 2 projects', 'Standard task tracking', 'Basic feedback markers']
+    features: ['Up to 2 projects', 'Standard task tracking', 'Basic feedback markers'],
+    discount: '',
+    note: 'Great for getting started'
   },
   {
     name: 'Pro',
     key: 'pro',
     price: '$29/month',
     maxProjects: 15,
-    features: ['Up to 15 projects', 'Unlimited tasks', 'Premium custom feedback', 'Developer chat support', 'Advanced status logs']
+    features: ['Up to 15 projects', 'Unlimited tasks', 'Premium custom feedback', 'Developer chat support', 'Advanced status logs'],
+    discount: '10% OFF',
+    note: 'Perfect for agencies'
   }
 ];
 
@@ -592,6 +602,8 @@ export const db = {
         price: data.price,
         maxProjects: Number(data.maxProjects) || 2,
         features: data.features || [],
+        discount: data.discount || '',
+        note: data.note || '',
         createdAt: new Date().toISOString()
       };
       dbStore.plans.push(newPlan);

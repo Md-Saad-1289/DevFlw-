@@ -13,6 +13,7 @@ interface FeedbackOverlayProps {
   user: User;
   onAddFeedback: (feedbackData: Partial<Feedback>) => Promise<void>;
   onResolveFeedback: (id: string, resolved: boolean) => Promise<void>;
+  onUpdateFeedbackStatus: (id: string, status: 'open' | 'in_progress' | 'resolved' | 'rejected') => Promise<void>;
   onDeleteFeedback: (id: string) => Promise<void>;
   onUpdateDemoUrl?: (url: string) => Promise<void>;
 }
@@ -42,6 +43,7 @@ export const FeedbackOverlay: React.FC<FeedbackOverlayProps> = ({
   user,
   onAddFeedback,
   onResolveFeedback,
+  onUpdateFeedbackStatus,
   onDeleteFeedback,
   onUpdateDemoUrl
 }) => {
@@ -65,6 +67,11 @@ export const FeedbackOverlay: React.FC<FeedbackOverlayProps> = ({
   const [filterPriority, setFilterPriority] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterDevice, setFilterDevice] = useState<string>('all');
+  
+  // Real-time Page/URL Path simulation tracking
+  const [activePath, setActivePath] = useState<string>('/');
+  const [pathInput, setPathInput] = useState<string>('/');
+  const [filterPage, setFilterPage] = useState<string>('current');
 
   // Local states for updating the live demo link
   const [demoUrlInput, setDemoUrlInput] = useState(project.liveDemoUrl || '');
@@ -184,6 +191,7 @@ export const FeedbackOverlay: React.FC<FeedbackOverlayProps> = ({
         text: formattedText,
         x: Math.round(clickCoords.x * 100) / 100, // round to 2 decimals
         y: Math.round(clickCoords.y * 100) / 100,
+        pagePath: activePath,
         resolved: false
       });
       setClickCoords(null);
@@ -198,18 +206,19 @@ export const FeedbackOverlay: React.FC<FeedbackOverlayProps> = ({
   // Filters the feedbacks based on user filters
   const filteredFeedbacks = feedbacks.filter(f => {
     const parsed = parseFeedback(f.text);
+    const statusVal = f.status || (f.resolved ? 'resolved' : 'open');
     
     const matchesSearch = parsed.cleanText.toLowerCase().includes(searchText.toLowerCase()) || 
                           f.reporterEmail.toLowerCase().includes(searchText.toLowerCase());
     
     const matchesCategory = filterCategory === 'all' || parsed.category.toLowerCase() === filterCategory.toLowerCase();
     const matchesPriority = filterPriority === 'all' || parsed.priority.toLowerCase() === filterPriority.toLowerCase();
-    const matchesStatus = filterStatus === 'all' || 
-                          (filterStatus === 'resolved' && f.resolved) || 
-                          (filterStatus === 'open' && !f.resolved);
+    const matchesStatus = filterStatus === 'all' || statusVal === filterStatus;
     const matchesDevice = filterDevice === 'all' || parsed.device.toLowerCase() === filterDevice.toLowerCase();
+    
+    const matchesPage = filterPage === 'all' || (f.pagePath || '/') === activePath;
 
-    return matchesSearch && matchesCategory && matchesPriority && matchesStatus && matchesDevice;
+    return matchesSearch && matchesCategory && matchesPriority && matchesStatus && matchesDevice && matchesPage;
   });
 
   const getCategoryColorInfo = (category: FeedbackCategory) => {
@@ -218,6 +227,20 @@ export const FeedbackOverlay: React.FC<FeedbackOverlayProps> = ({
 
   const getPriorityColorInfo = (priority: FeedbackPriority) => {
     return PRIORITIES.find(p => p.name === priority) || PRIORITIES[1];
+  };
+
+  const getStatusBadgeInfo = (status: string) => {
+    switch (status) {
+      case 'in_progress':
+        return { label: 'In Progress', bg: 'bg-blue-50 border-blue-200 text-blue-700', dot: 'bg-blue-500' };
+      case 'resolved':
+        return { label: 'Resolved', bg: 'bg-emerald-50 border-emerald-200 text-emerald-700', dot: 'bg-emerald-500' };
+      case 'rejected':
+        return { label: 'Declined', bg: 'bg-slate-100 border-slate-300 text-slate-600', dot: 'bg-slate-400' };
+      case 'open':
+      default:
+        return { label: 'Open', bg: 'bg-amber-50 border-amber-200 text-amber-700', dot: 'bg-amber-500' };
+    }
   };
 
   const hasDemoUrl = !!project.liveDemoUrl && project.liveDemoUrl.trim() !== '';
@@ -239,7 +262,65 @@ export const FeedbackOverlay: React.FC<FeedbackOverlayProps> = ({
             <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
             <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-            <span className="text-slate-400 ml-2 hidden sm:inline">sandbox://live-demo</span>
+            <span className="text-slate-400 ml-2 hidden lg:inline font-bold">Browser Simulator</span>
+          </div>
+
+          {/* Dynamic Staging URL & Sub-page Navigation Input */}
+          <div className="flex items-center gap-1.5 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800 flex-1 min-w-[240px] max-w-md">
+            <span className="text-[9px] font-extrabold text-indigo-400 select-none">STAGING:</span>
+            <span className="text-[10px] font-mono text-slate-500 hidden sm:inline truncate max-w-[100px]">
+              {project.liveDemoUrl ? project.liveDemoUrl.replace(/https?:\/\//i, '').replace(/\/$/, '') : 'sandbox://'}
+            </span>
+            <div className="flex items-center gap-0.5 flex-1 border-l border-slate-800 pl-1.5">
+              <span className="text-slate-600 font-mono text-[10px] select-none">/</span>
+              <input
+                type="text"
+                value={pathInput.startsWith('/') ? pathInput.slice(1) : pathInput}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setPathInput(val.startsWith('/') ? val : '/' + val);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    let finalP = pathInput.trim();
+                    if (!finalP.startsWith('/')) finalP = '/' + finalP;
+                    setActivePath(finalP);
+                  }
+                }}
+                placeholder="path (e.g. about, dashboard)"
+                className="bg-transparent border-none outline-none text-white font-mono text-[10px] w-full focus:ring-0 p-0 placeholder:text-slate-600"
+              />
+              {pathInput !== activePath && (
+                <button
+                  onClick={() => {
+                    let finalP = pathInput.trim();
+                    if (!finalP.startsWith('/')) finalP = '/' + finalP;
+                    setActivePath(finalP);
+                  }}
+                  className="text-[9px] bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold px-2 py-0.5 rounded cursor-pointer transition-colors shrink-0"
+                >
+                  GO
+                </button>
+              )}
+            </div>
+            
+            {/* Quick dropdown select for main pages */}
+            <select
+              value={activePath}
+              onChange={(e) => {
+                const val = e.target.value;
+                setActivePath(val);
+                setPathInput(val);
+              }}
+              className="bg-slate-900 border border-slate-700 text-slate-300 rounded text-[9px] font-semibold py-0.5 px-1 outline-none cursor-pointer focus:ring-1 focus:ring-indigo-500"
+            >
+              <option value="/">Home ( / )</option>
+              <option value="/about">About ( /about )</option>
+              <option value="/pricing">Pricing ( /pricing )</option>
+              <option value="/dashboard">Dashboard ( /dashboard )</option>
+              <option value="/checkout">Checkout ( /checkout )</option>
+              <option value="/contact">Contact ( /contact )</option>
+            </select>
           </div>
 
           {/* Interactive responsive device toggle bar */}
@@ -280,8 +361,8 @@ export const FeedbackOverlay: React.FC<FeedbackOverlayProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold text-slate-500 capitalize hidden md:inline">
-              {project.name} {deviceMode} Sandbox
+            <span className="text-[10px] font-bold text-indigo-400 capitalize hidden md:inline bg-indigo-950/40 px-2 py-0.5 rounded border border-indigo-900/30">
+              Active: {activePath}
             </span>
             <button
               onClick={() => setIsFullScreen(!isFS)}
@@ -306,7 +387,7 @@ export const FeedbackOverlay: React.FC<FeedbackOverlayProps> = ({
               <iframe
                 id="live-demo-iframe"
                 ref={iframeRef}
-                src={project.liveDemoUrl}
+                src={`${project.liveDemoUrl.replace(/\/$/, '')}${activePath}`}
                 title="SaaS Live Prototype"
                 className="w-full h-full border-none min-h-[440px] bg-white select-none flex-1"
                 referrerPolicy="no-referrer"
@@ -320,22 +401,22 @@ export const FeedbackOverlay: React.FC<FeedbackOverlayProps> = ({
                 <h4 className="text-xs font-bold text-slate-200">Simulation Workspace Canvas</h4>
                 <p className="text-[10px] text-slate-400 max-w-xs mt-1 mb-4 leading-normal">
                   {user.role === 'developer' 
-                    ? 'Enter your live deployment URL in settings to stream the live app. Place mock pins directly on this visual canvas in the meantime!' 
-                    : 'Your developer is connecting the live server build. Click any coordinate spot on this prototype to save mockup feedback annotations!'}
+                    ? `Enter your live deployment URL in settings to stream the live app. Place mock pins directly on route "${activePath}" on this visual canvas!` 
+                    : `Your developer is connecting the live server build. Click any coordinate spot on route "${activePath}" to save mockup feedback annotations!`}
                 </p>
                 
                 {/* Visual Sandbox template layout for placement mapping */}
                 <div className="w-full max-w-[280px] bg-slate-950 rounded-lg border border-slate-800 p-4 text-left space-y-3 pointer-events-none">
                   <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                    <span className="font-bold text-[10px] text-slate-400">Mock App Landing Page</span>
-                    <span className="text-[8px] bg-indigo-500/10 text-indigo-400 px-1.5 py-0.5 rounded-full border border-indigo-500/10">Active</span>
+                    <span className="font-bold text-[10px] text-indigo-400 font-mono">Route: {activePath}</span>
+                    <span className="text-[8px] bg-indigo-500/10 text-indigo-400 px-1.5 py-0.5 rounded-full border border-indigo-500/10">Active View</span>
                   </div>
                   <div className="space-y-1.5">
                     <div className="h-3 bg-slate-800 rounded w-2/3" />
                     <div className="h-2 bg-slate-800 rounded w-1/2" />
                   </div>
                   <div className="h-12 bg-slate-900/40 rounded border border-slate-800 p-2 flex items-center justify-center">
-                    <span className="text-[8px] text-slate-500 font-mono">Hero Frame Container</span>
+                    <span className="text-[8px] text-slate-500 font-mono">Template: {activePath === '/' ? 'Home View Content' : `${activePath.slice(1).toUpperCase()} Section`}</span>
                   </div>
                 </div>
               </div>
@@ -363,16 +444,32 @@ export const FeedbackOverlay: React.FC<FeedbackOverlayProps> = ({
             )}
 
             {/* Plotted visual pinpoint coordinate indicators */}
-            {filteredFeedbacks.map((f) => {
+            {filteredFeedbacks
+              .filter((f) => (f.pagePath || '/') === activePath)
+              .map((f) => {
               const id = f._id || f.id;
               if (f.x === undefined || f.y === undefined) return null;
 
               const isSelected = selectedPinId === id;
               const parsed = parseFeedback(f.text);
               const categoryColor = getCategoryColorInfo(parsed.category);
+              const statusVal = f.status || (f.resolved ? 'resolved' : 'open');
 
               // Find feedback overall sequence index from the parent feedbacks list
               const originalIndex = feedbacks.findIndex(orig => (orig._id || orig.id) === id);
+
+              let statusPinClass = '';
+              if (statusVal === 'resolved') {
+                statusPinClass = 'bg-emerald-500 text-white hover:bg-emerald-600 ring-2 ring-emerald-200';
+              } else if (statusVal === 'in_progress') {
+                statusPinClass = 'bg-blue-500 text-white hover:bg-blue-600 ring-2 ring-blue-200 animate-pulse';
+              } else if (statusVal === 'rejected') {
+                statusPinClass = 'bg-slate-400 text-white hover:bg-slate-500 ring-2 ring-slate-200';
+              } else {
+                statusPinClass = isSelected 
+                  ? 'bg-rose-500 text-white ring-4 ring-rose-500/30 scale-125 animate-pulse' 
+                  : `${categoryColor.bullet} text-white hover:scale-110 ring-2 ring-white`;
+              }
 
               return (
                 <button
@@ -382,15 +479,9 @@ export const FeedbackOverlay: React.FC<FeedbackOverlayProps> = ({
                     e.stopPropagation();
                     setSelectedPinId(isSelected ? null : id);
                   }}
-                  className={`absolute w-7 h-7 rounded-full flex items-center justify-center font-mono text-[10px] font-bold shadow-xl cursor-pointer -translate-x-1/2 -translate-y-1/2 z-30 transition-all ${
-                    f.resolved 
-                      ? 'bg-emerald-500 text-white hover:bg-emerald-600 ring-2 ring-emerald-250' 
-                      : isSelected 
-                        ? 'bg-rose-500 text-white ring-4 ring-rose-500/30 scale-125 animate-pulse' 
-                        : `${categoryColor.bullet} text-white hover:scale-110 ring-2 ring-white`
-                  }`}
+                  className={`absolute w-7 h-7 rounded-full flex items-center justify-center font-mono text-[10px] font-bold shadow-xl cursor-pointer -translate-x-1/2 -translate-y-1/2 z-30 transition-all ${statusPinClass}`}
                   style={{ left: `${f.x}%`, top: `${f.y}%` }}
-                  title={`[${parsed.category}] ${parsed.cleanText}`}
+                  title={`[Status: ${statusVal.toUpperCase()}] [${parsed.category}] ${parsed.cleanText}`}
                 >
                   {originalIndex !== -1 ? originalIndex + 1 : '?'}
                 </button>
@@ -523,6 +614,17 @@ export const FeedbackOverlay: React.FC<FeedbackOverlayProps> = ({
 
           {/* Filtering Dropdowns */}
           <div className="grid grid-cols-2 gap-1.5">
+            <div className="col-span-2">
+              <select
+                value={filterPage}
+                onChange={(e) => setFilterPage(e.target.value)}
+                className="w-full bg-indigo-50 border border-indigo-150 rounded px-1.5 py-1 text-[10px] font-bold text-indigo-700 outline-none cursor-pointer"
+              >
+                <option value="current">Current Page Only ({activePath})</option>
+                <option value="all">All Pages Across Prototype</option>
+              </select>
+            </div>
+
             <div>
               <select
                 value={filterCategory}
@@ -558,8 +660,10 @@ export const FeedbackOverlay: React.FC<FeedbackOverlayProps> = ({
                 className="w-full bg-white border border-slate-200 rounded px-1.5 py-1 text-[10px] text-slate-600 outline-none"
               >
                 <option value="all">Status: All</option>
-                <option value="open">Open pins</option>
+                <option value="open">Open</option>
+                <option value="in_progress">In Progress</option>
                 <option value="resolved">Resolved</option>
+                <option value="rejected">Declined</option>
               </select>
             </div>
 
@@ -597,28 +701,37 @@ export const FeedbackOverlay: React.FC<FeedbackOverlayProps> = ({
               const parsed = parseFeedback(f.text);
               const catColor = getCategoryColorInfo(parsed.category);
               const prioColor = getPriorityColorInfo(parsed.priority);
+              const statusVal = f.status || (f.resolved ? 'resolved' : 'open');
+              const statusInfo = getStatusBadgeInfo(statusVal);
 
               // Find overall index in full array
               const originalIndex = feedbacks.findIndex(orig => (orig._id || orig.id) === id);
+
+              let statusDotBg = 'bg-amber-500';
+              if (statusVal === 'resolved') statusDotBg = 'bg-emerald-500';
+              else if (statusVal === 'in_progress') statusDotBg = 'bg-blue-500';
+              else if (statusVal === 'rejected') statusDotBg = 'bg-slate-500';
 
               return (
                 <div
                   id={`feedback-card-item-${id}`}
                   key={id}
-                  className={`pt-3 pb-2 space-y-2 transition-all rounded-lg ${
-                    isSelected ? 'bg-indigo-50/40 p-2.5 border border-indigo-100 shadow-sm' : 'hover:bg-slate-50/50'
+                  className={`pt-3 pb-3 px-3 space-y-2.5 transition-all rounded-xl border cursor-pointer ${
+                    isSelected 
+                      ? 'bg-indigo-50/30 border-indigo-200 shadow-md ring-1 ring-indigo-100' 
+                      : 'hover:bg-slate-50/60 border-transparent'
                   }`}
                   onClick={() => {
                     setSelectedPinId(isSelected ? null : id);
+                    if (f.pagePath) {
+                      setActivePath(f.pagePath);
+                      setPathInput(f.pagePath);
+                    }
                   }}
                 >
                   <div className="flex items-start justify-between gap-1.5">
                     <div className="flex items-center gap-2">
-                      <span className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px] ${
-                        f.resolved 
-                          ? 'bg-emerald-500 text-white' 
-                          : `${catColor.bullet} text-white`
-                      }`}>
+                      <span className={`w-5 h-5 rounded-full flex items-center justify-center font-bold text-[10px] text-white ${statusDotBg}`}>
                         {originalIndex !== -1 ? originalIndex + 1 : '?'}
                       </span>
                       <div>
@@ -636,10 +749,8 @@ export const FeedbackOverlay: React.FC<FeedbackOverlayProps> = ({
                       <span className={`text-[8px] font-extrabold px-1.5 py-0.5 rounded border uppercase tracking-wider ${catColor.bg} ${catColor.color} ${catColor.border}`}>
                         {parsed.category}
                       </span>
-                      <span className={`text-[8px] font-semibold px-1 py-0.5 rounded ${
-                        f.resolved ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                      }`}>
-                        {f.resolved ? 'Resolved' : 'Open'}
+                      <span className={`text-[8px] font-semibold px-1.5 py-0.5 rounded border ${statusInfo.bg}`}>
+                        {statusInfo.label}
                       </span>
                     </div>
                   </div>
@@ -654,6 +765,9 @@ export const FeedbackOverlay: React.FC<FeedbackOverlayProps> = ({
                       <span className="text-[8px] font-mono text-slate-400 bg-slate-50 px-1 py-0.5 rounded">
                         Coords: {Math.round(f.x || 0)}%, {Math.round(f.y || 0)}%
                       </span>
+                      <span className="text-[8px] font-mono text-indigo-600 bg-indigo-50 border border-indigo-100 px-1 py-0.5 rounded font-bold truncate max-w-[120px]" title={`Placed on page path: ${f.pagePath || '/'}`}>
+                        Path: {f.pagePath || '/'}
+                      </span>
                       <span className={`text-[8px] font-semibold px-1 py-0.5 rounded border flex items-center gap-0.5 ${prioColor.color}`}>
                         <Info className="w-2.5 h-2.5" />
                         {parsed.priority}
@@ -664,19 +778,6 @@ export const FeedbackOverlay: React.FC<FeedbackOverlayProps> = ({
                     </div>
 
                     <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                      {/* Toggle resolve button */}
-                      <button
-                        onClick={() => onResolveFeedback(id, !f.resolved)}
-                        className={`p-1 rounded text-[10px] font-bold flex items-center gap-0.5 transition-colors cursor-pointer ${
-                          f.resolved 
-                            ? 'text-amber-600 hover:bg-amber-50' 
-                            : 'text-emerald-600 hover:bg-emerald-50'
-                        }`}
-                      >
-                        <Check className="w-3 h-3" />
-                        {f.resolved ? 'Reopen' : 'Resolve'}
-                      </button>
-
                       {/* Developer only remove button */}
                       {user.role === 'developer' && (
                         <button
@@ -693,6 +794,53 @@ export const FeedbackOverlay: React.FC<FeedbackOverlayProps> = ({
                       )}
                     </div>
                   </div>
+
+                  {/* Interactive Status Update Panel (renders when card is selected) */}
+                  {isSelected && (
+                    <div 
+                      className="mt-3 pt-2.5 border-t border-slate-150 bg-slate-50/80 p-2.5 rounded-lg flex flex-col gap-2" 
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="flex justify-between items-center">
+                        <span className="text-[9px] font-extrabold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                          <Sparkles className="w-3 h-3 text-indigo-500 animate-pulse" />
+                          Update Tracking Status
+                        </span>
+                        <span className="text-[8px] font-medium text-slate-400">
+                          Syncs immediately
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {(['open', 'in_progress', 'resolved', 'rejected'] as const).map((statusKey) => {
+                          const isCurrent = statusVal === statusKey;
+                          const info = getStatusBadgeInfo(statusKey);
+                          return (
+                            <button
+                              key={statusKey}
+                              type="button"
+                              onClick={async () => {
+                                if (isCurrent) return;
+                                await onUpdateFeedbackStatus(id, statusKey);
+                              }}
+                              className={`px-2 py-1.5 rounded-lg text-[10px] font-bold border transition-all text-left flex items-center justify-between cursor-pointer ${
+                                isCurrent 
+                                  ? `${info.bg} ring-2 ring-indigo-500/10 font-extrabold` 
+                                  : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-600'
+                              }`}
+                            >
+                              <span className="flex items-center gap-1.5">
+                                <span className={`w-2 h-2 rounded-full ${info.dot}`} />
+                                {info.label}
+                              </span>
+                              {isCurrent && (
+                                <span className="text-[8px] font-extrabold text-indigo-600 bg-indigo-50/50 px-1 rounded">✓</span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })

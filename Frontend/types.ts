@@ -45,6 +45,8 @@ export interface Feedback {
   y?: number;
   screenshotUrl?: string;
   resolved: boolean;
+  status?: 'open' | 'in_progress' | 'resolved' | 'rejected';
+  pagePath?: string;
   createdAt?: string;
 }
 

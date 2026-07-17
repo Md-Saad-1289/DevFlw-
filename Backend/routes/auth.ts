@@ -241,4 +241,114 @@ router.put('/plan', authenticateToken, async (req: any, res: any) => {
   }
 });
 
+// 6. Update user profile details (Name, password)
+router.put('/profile', authenticateToken, async (req: any, res: any) => {
+  const { name, password } = req.body;
+  const { id } = req.user;
+
+  try {
+    const user = await db.users.findById(id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const updates: any = {};
+    if (name) {
+      updates.name = name;
+    }
+    if (password) {
+      updates.password = await bcrypt.hash(password, 10);
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await db.users.updateOne({ _id: id }, updates);
+      await db.users.updateOne({ id: id }, updates);
+    }
+
+    const updatedUser = await db.users.findById(id);
+    if (!updatedUser) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    return res.json({
+      message: 'Profile updated successfully',
+      user: {
+        id: updatedUser._id || updatedUser.id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        role: updatedUser.role,
+        plan: updatedUser.plan || 'free',
+        createdAt: updatedUser.createdAt
+      }
+    });
+  } catch (err: any) {
+    console.error('Error updating profile:', err);
+    return res.status(500).json({ error: 'Server error while updating profile' });
+  }
+});
+
+// Update or create plans (restricted to 'developer' role for collaboration control)
+router.post('/plans', authenticateToken, async (req: any, res: any) => {
+  if (req.user.role !== 'developer') {
+    return res.status(403).json({ error: 'Only developers can manage workspace subscription plans.' });
+  }
+
+  const { name, key, price, maxProjects, features, discount, note } = req.body;
+  if (!name || !key || !price) {
+    return res.status(400).json({ error: 'Name, key, and price are required to create a subscription plan.' });
+  }
+
+  try {
+    const existing = await db.plans.findOne({ key: key.toLowerCase() });
+    if (existing) {
+      return res.status(400).json({ error: 'A subscription plan with this key already exists.' });
+    }
+
+    const newPlan = await db.plans.create({
+      name,
+      key: key.toLowerCase(),
+      price,
+      maxProjects: Number(maxProjects) || 2,
+      features: features || [],
+      discount: discount || '',
+      note: note || ''
+    });
+
+    res.json({ message: 'Plan created successfully', plan: newPlan });
+  } catch (err: any) {
+    console.error('Error creating plan:', err);
+    res.status(500).json({ error: 'Server error while creating subscription plan.' });
+  }
+});
+
+router.put('/plans/:id', authenticateToken, async (req: any, res: any) => {
+  if (req.user.role !== 'developer') {
+    return res.status(403).json({ error: 'Only developers can manage workspace subscription plans.' });
+  }
+
+  const { id } = req.params;
+  const { name, price, maxProjects, features, discount, note } = req.body;
+
+  try {
+    const existing = await db.plans.findById(id);
+    if (!existing) {
+      return res.status(404).json({ error: 'Plan not found.' });
+    }
+
+    const updates: any = {};
+    if (name !== undefined) updates.name = name;
+    if (price !== undefined) updates.price = price;
+    if (maxProjects !== undefined) updates.maxProjects = Number(maxProjects);
+    if (features !== undefined) updates.features = features;
+    if (discount !== undefined) updates.discount = discount;
+    if (note !== undefined) updates.note = note;
+
+    const updated = await db.plans.findByIdAndUpdate(id, updates);
+    res.json({ message: 'Plan updated successfully', plan: updated });
+  } catch (err: any) {
+    console.error('Error updating plan:', err);
+    res.status(500).json({ error: 'Server error while updating subscription plan.' });
+  }
+});
+
 export default router;

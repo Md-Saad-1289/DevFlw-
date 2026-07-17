@@ -27,7 +27,7 @@ router.patch('/:id/read', authenticateToken, async (req: any, res: any) => {
       return res.status(404).json({ error: 'Notification not found' });
     }
 
-    if (notification.userId !== userId) {
+    if (String(notification.userId) !== String(userId)) {
       return res.status(403).json({ error: 'Access denied' });
     }
 

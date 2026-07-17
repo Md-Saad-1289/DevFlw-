@@ -31,7 +31,7 @@ router.post('/', authenticateToken, async (req: any, res: any) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
-    const isDeveloper = role === 'developer' && project.developerId === userId;
+    const isDeveloper = role === 'developer' && String(project.developerId) === String(userId);
     const isClient = role === 'client' && project.clients.includes(email.toLowerCase());
     if (!isDeveloper && !isClient) {
       return res.status(403).json({ error: 'Access denied' });
@@ -52,7 +52,7 @@ router.post('/', authenticateToken, async (req: any, res: any) => {
       : [await db.users.findById(project.developerId)];
 
     for (const u of alertUsers) {
-      if (u && (u._id || u.id) !== userId) {
+      if (u && String(u._id || u.id) !== String(userId)) {
         await db.notifications.create({
           userId: u._id || u.id,
           projectId,
