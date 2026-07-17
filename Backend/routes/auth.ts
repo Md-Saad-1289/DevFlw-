@@ -287,13 +287,13 @@ router.put('/profile', authenticateToken, async (req: any, res: any) => {
   }
 });
 
-// Update or create plans (restricted to 'developer' and 'admin' roles for collaboration control)
+// Update or create plans (restricted to 'admin' role)
 router.post('/plans', authenticateToken, async (req: any, res: any) => {
-  if (req.user.role !== 'developer' && req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Only developers and admins can manage workspace subscription plans.' });
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Only administrators can create workspace subscription plans.' });
   }
 
-  const { name, key, price, maxProjects, features, discount, note } = req.body;
+  const { name, key, price, beforePrice, maxProjects, features, discount, note, isActive } = req.body;
   if (!name || !key || !price) {
     return res.status(400).json({ error: 'Name, key, and price are required to create a subscription plan.' });
   }
@@ -308,10 +308,12 @@ router.post('/plans', authenticateToken, async (req: any, res: any) => {
       name,
       key: key.toLowerCase(),
       price,
+      beforePrice: beforePrice || '',
       maxProjects: Number(maxProjects) || 2,
       features: features || [],
       discount: discount || '',
-      note: note || ''
+      note: note || '',
+      isActive: isActive !== undefined ? Boolean(isActive) : true
     });
 
     res.json({ message: 'Plan created successfully', plan: newPlan });
@@ -322,12 +324,12 @@ router.post('/plans', authenticateToken, async (req: any, res: any) => {
 });
 
 router.put('/plans/:id', authenticateToken, async (req: any, res: any) => {
-  if (req.user.role !== 'developer' && req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Only developers and admins can manage workspace subscription plans.' });
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Only administrators can update workspace subscription plans.' });
   }
 
   const { id } = req.params;
-  const { name, price, maxProjects, features, discount, note } = req.body;
+  const { name, price, beforePrice, maxProjects, features, discount, note, isActive } = req.body;
 
   try {
     const existing = await db.plans.findById(id);
@@ -338,10 +340,12 @@ router.put('/plans/:id', authenticateToken, async (req: any, res: any) => {
     const updates: any = {};
     if (name !== undefined) updates.name = name;
     if (price !== undefined) updates.price = price;
+    if (beforePrice !== undefined) updates.beforePrice = beforePrice;
     if (maxProjects !== undefined) updates.maxProjects = Number(maxProjects);
     if (features !== undefined) updates.features = features;
     if (discount !== undefined) updates.discount = discount;
     if (note !== undefined) updates.note = note;
+    if (isActive !== undefined) updates.isActive = Boolean(isActive);
 
     const updated = await db.plans.findByIdAndUpdate(id, updates);
     res.json({ message: 'Plan updated successfully', plan: updated });

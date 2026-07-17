@@ -148,10 +148,12 @@ const PlanSchema = new mongoose.Schema({
   name: { type: String, required: true },
   key: { type: String, required: true, unique: true },
   price: { type: String, required: true },
+  beforePrice: { type: String, default: '' },
   maxProjects: { type: Number, required: true, default: 2 },
   features: { type: [String], default: [] },
   discount: { type: String, default: '' },
   note: { type: String, default: '' },
+  isActive: { type: Boolean, default: true },
   createdAt: { type: Date, default: Date.now }
 });
 
@@ -169,19 +171,23 @@ export const defaultPlans = [
     name: 'Free',
     key: 'free',
     price: '$0/month',
+    beforePrice: '',
     maxProjects: 2,
     features: ['Up to 2 projects', 'Standard task tracking', 'Basic feedback markers'],
     discount: '',
-    note: 'Great for getting started'
+    note: 'Great for getting started',
+    isActive: true
   },
   {
     name: 'Pro',
     key: 'pro',
     price: '$29/month',
+    beforePrice: '$39/month',
     maxProjects: 15,
     features: ['Up to 15 projects', 'Unlimited tasks', 'Premium custom feedback', 'Developer chat support', 'Advanced status logs'],
     discount: '10% OFF',
-    note: 'Perfect for agencies'
+    note: 'Perfect for agencies',
+    isActive: true
   }
 ];
 
@@ -600,10 +606,12 @@ export const db = {
         name: data.name,
         key: data.key,
         price: data.price,
+        beforePrice: data.beforePrice || '',
         maxProjects: Number(data.maxProjects) || 2,
         features: data.features || [],
         discount: data.discount || '',
         note: data.note || '',
+        isActive: data.isActive !== undefined ? data.isActive : true,
         createdAt: new Date().toISOString()
       };
       dbStore.plans.push(newPlan);
