@@ -7,8 +7,10 @@ interface Plan {
   name: string;
   key: string;
   price: string;
+  beforePrice?: string;
   maxProjects: number;
   features: string[];
+  isActive?: boolean;
 }
 
 interface AdminPlansProps {
@@ -31,17 +33,21 @@ export const AdminPlans: React.FC<AdminPlansProps> = ({
   const [name, setName] = useState('');
   const [key, setKey] = useState('');
   const [price, setPrice] = useState('');
+  const [beforePrice, setBeforePrice] = useState('');
   const [maxProjects, setMaxProjects] = useState(2);
   const [features, setFeatures] = useState<string[]>([]);
   const [newFeatureText, setNewFeatureText] = useState('');
+  const [isActive, setIsActive] = useState(true);
 
   // Edit form states
   const [editName, setEditName] = useState('');
   const [editKey, setEditKey] = useState('');
   const [editPrice, setEditPrice] = useState('');
+  const [editBeforePrice, setEditBeforePrice] = useState('');
   const [editMaxProjects, setEditMaxProjects] = useState(2);
   const [editFeatures, setEditFeatures] = useState<string[]>([]);
   const [editNewFeatureText, setEditNewFeatureText] = useState('');
+  const [editIsActive, setEditIsActive] = useState(true);
 
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -50,9 +56,11 @@ export const AdminPlans: React.FC<AdminPlansProps> = ({
     setName('');
     setKey('');
     setPrice('');
+    setBeforePrice('');
     setMaxProjects(2);
     setFeatures([]);
     setNewFeatureText('');
+    setIsActive(true);
     setErrorMsg(null);
   };
 
@@ -62,9 +70,11 @@ export const AdminPlans: React.FC<AdminPlansProps> = ({
     setEditName(plan.name);
     setEditKey(plan.key);
     setEditPrice(plan.price);
+    setEditBeforePrice(plan.beforePrice || '');
     setEditMaxProjects(plan.maxProjects || 2);
     setEditFeatures(plan.features || []);
     setEditNewFeatureText('');
+    setEditIsActive(plan.isActive !== false);
     setErrorMsg(null);
   };
 
@@ -101,8 +111,10 @@ export const AdminPlans: React.FC<AdminPlansProps> = ({
       name: name.trim(),
       key: key.trim().toLowerCase(),
       price: price.trim(),
+      beforePrice: beforePrice.trim(),
       maxProjects: Number(maxProjects) || 2,
       features,
+      isActive,
     });
     setSaving(true); // temporary state to trigger render reload
     setSaving(false);
@@ -130,8 +142,10 @@ export const AdminPlans: React.FC<AdminPlansProps> = ({
       name: editName.trim(),
       key: editKey.trim().toLowerCase(),
       price: editPrice.trim(),
+      beforePrice: editBeforePrice.trim(),
       maxProjects: Number(editMaxProjects) || 2,
       features: editFeatures,
+      isActive: editIsActive,
     });
     setSaving(false);
 
@@ -201,7 +215,7 @@ export const AdminPlans: React.FC<AdminPlansProps> = ({
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">Plan Name</label>
               <input
@@ -225,6 +239,21 @@ export const AdminPlans: React.FC<AdminPlansProps> = ({
               />
             </div>
             <div>
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">Max Active Projects Limit</label>
+              <input
+                type="number"
+                min="1"
+                max="999"
+                value={maxProjects}
+                onChange={(e) => setMaxProjects(Number(e.target.value))}
+                className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">Price Label</label>
               <input
                 type="text"
@@ -236,16 +265,31 @@ export const AdminPlans: React.FC<AdminPlansProps> = ({
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">Max Active Projects Limit</label>
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">Before Price Label (Optional)</label>
               <input
-                type="number"
-                min="1"
-                max="999"
-                value={maxProjects}
-                onChange={(e) => setMaxProjects(Number(e.target.value))}
+                type="text"
+                placeholder="e.g. $149/month"
+                value={beforePrice}
+                onChange={(e) => setBeforePrice(e.target.value)}
                 className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-1 focus:ring-indigo-500 focus:outline-none"
-                required
               />
+            </div>
+            <div className="flex flex-col justify-end">
+              <div className="p-2 bg-slate-50 border rounded-lg flex items-center justify-between">
+                <div>
+                  <span className="block text-[11px] font-bold text-gray-700 uppercase tracking-wide">Status</span>
+                  <span className="text-[9px] text-gray-500">Enable/disable plan</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsActive(!isActive)}
+                  className={`w-11 h-6 flex items-center rounded-full p-1 transition-all cursor-pointer ${
+                    isActive ? 'bg-indigo-600 justify-end' : 'bg-slate-300 justify-start'
+                  }`}
+                >
+                  <span className="bg-white w-4 h-4 rounded-full shadow-md" />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -334,7 +378,7 @@ export const AdminPlans: React.FC<AdminPlansProps> = ({
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">Plan Name</label>
               <input
@@ -356,16 +400,6 @@ export const AdminPlans: React.FC<AdminPlansProps> = ({
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">Price Label</label>
-              <input
-                type="text"
-                value={editPrice}
-                onChange={(e) => setEditPrice(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-1 focus:ring-amber-500 focus:outline-none"
-                required
-              />
-            </div>
-            <div>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">Max Active Projects Limit</label>
               <input
                 type="number"
@@ -376,6 +410,46 @@ export const AdminPlans: React.FC<AdminPlansProps> = ({
                 className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-1 focus:ring-amber-500 focus:outline-none"
                 required
               />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">Price Label</label>
+              <input
+                type="text"
+                value={editPrice}
+                onChange={(e) => setEditPrice(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-1 focus:ring-amber-500 focus:outline-none"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-1">Before Price Label (Optional)</label>
+              <input
+                type="text"
+                placeholder="e.g. $149/month"
+                value={editBeforePrice}
+                onChange={(e) => setEditBeforePrice(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-1 focus:ring-amber-500 focus:outline-none"
+              />
+            </div>
+            <div className="flex flex-col justify-end">
+              <div className="p-2 bg-slate-50 border rounded-lg flex items-center justify-between">
+                <div>
+                  <span className="block text-[11px] font-bold text-gray-700 uppercase tracking-wide">Status</span>
+                  <span className="text-[9px] text-gray-500">Enable/disable plan</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditIsActive(!editIsActive)}
+                  className={`w-11 h-6 flex items-center rounded-full p-1 transition-all cursor-pointer ${
+                    editIsActive ? 'bg-indigo-600 justify-end' : 'bg-slate-300 justify-start'
+                  }`}
+                >
+                  <span className="bg-white w-4 h-4 rounded-full shadow-md" />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -450,28 +524,46 @@ export const AdminPlans: React.FC<AdminPlansProps> = ({
               <tr className="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 <th className="py-3.5 px-4 font-bold">Plan Name</th>
                 <th className="py-3.5 px-4 font-bold">Plan Key (ID)</th>
-                <th className="py-3.5 px-4 font-bold">Price Label</th>
+                <th className="py-3.5 px-4 font-bold">Price Details</th>
                 <th className="py-3.5 px-4 font-bold">Max Active Projects</th>
                 <th className="py-3.5 px-4 font-bold">Included Features</th>
+                <th className="py-3.5 px-4 font-bold">Visibility Status</th>
                 <th className="py-3.5 px-4 font-bold text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 text-sm">
               {plans.map((p) => {
                 const planId = p.id || p._id || '';
+                const isPlanLive = p.isActive !== false;
                 return (
-                  <tr key={planId} className="hover:bg-gray-50 transition-colors">
-                    <td className="py-4 px-4 font-bold text-gray-900 flex items-center gap-2">
-                      <span className={`w-2.5 h-2.5 rounded-full ${
-                        p.key === 'free' ? 'bg-gray-400' : p.key === 'pro' ? 'bg-amber-400 animate-pulse' : 'bg-indigo-500'
-                      }`} />
-                      {p.name}
+                  <tr key={planId} className={`hover:bg-gray-50 transition-colors ${!isPlanLive ? 'opacity-70 bg-slate-50/40' : ''}`}>
+                    <td className="py-4 px-4 font-bold text-gray-900">
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2.5 h-2.5 rounded-full ${
+                          !isPlanLive ? 'bg-slate-300' : p.key === 'free' ? 'bg-gray-400' : p.key === 'pro' ? 'bg-amber-400 animate-pulse' : 'bg-indigo-500'
+                        }`} />
+                        <span>{p.name}</span>
+                        {!isPlanLive && (
+                          <span className="text-[9px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded border border-slate-300 uppercase tracking-tight font-extrabold">
+                            Inactive
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-4 px-4 font-mono text-xs text-gray-600 bg-gray-50 rounded select-all py-1 px-2.5 inline-block my-2">
                       {p.key}
                     </td>
                     <td className="py-4 px-4 text-gray-800 font-semibold">
-                      {p.price}
+                      <div className="flex flex-col">
+                        {p.beforePrice && (
+                          <span className="text-[10px] text-rose-500 line-through font-semibold leading-none mb-1">
+                            {p.beforePrice}
+                          </span>
+                        )}
+                        <span className="text-sm font-extrabold text-gray-900 leading-none">
+                          {p.price}
+                        </span>
+                      </div>
                     </td>
                     <td className="py-4 px-4 text-gray-950 font-bold">
                       {p.maxProjects} projects
@@ -487,6 +579,17 @@ export const AdminPlans: React.FC<AdminPlansProps> = ({
                           <span className="text-gray-400 text-xs italic">No features listed</span>
                         )}
                       </div>
+                    </td>
+                    <td className="py-4 px-4">
+                      {isPlanLive ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-green-50 text-green-700 border border-green-200 text-[10px] font-extrabold rounded-full uppercase tracking-wider">
+                          Active
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 text-slate-500 border border-slate-200 text-[10px] font-extrabold rounded-full uppercase tracking-wider">
+                          Inactive
+                        </span>
+                      )}
                     </td>
                     <td className="py-4 px-4 text-right">
                       <div className="flex justify-end gap-2">
